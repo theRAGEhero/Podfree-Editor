@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Podfree Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.8);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.1), transparent 58%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 1.5rem clamp(1rem, 2vw, 2.5rem) 2.5rem;
+    }
+
+    header {
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .site-logo {
+      height: 48px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 0.35rem;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(148, 163, 184, 0.25);
+      color: var(--text);
+    }
+
+    .nav-link.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 1.2rem + 2vw, 2.6rem);
+    }
+
+    .info {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .title-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .title-form label {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .title-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #title-input {
+      flex: 1 1 280px;
+      min-width: 220px;
+      padding: 0.55rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    #title-input:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #title-save {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    #title-save:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    #title-save:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .title-status {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .participant-info {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .participant-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+    }
+
+    .participant-pill strong {
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .participant-pill.interviewer {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(56, 189, 248, 0.18);
+    }
+
+    .participant-pill.guest {
+      border-color: rgba(74, 222, 128, 0.4);
+      background: rgba(74, 222, 128, 0.18);
+    }
+
+    .participant-pill.missing {
+      border-color: rgba(148, 163, 184, 0.2);
+      background: rgba(148, 163, 184, 0.12);
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .participant-info.all-missing .participant-pill {
+      opacity: 0.65;
+    }
+
+    .layout {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: clamp(1.2rem, 1rem + 1vw, 1.8rem);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .player-panel {
+      flex: 1 1 580px;
+      min-width: 320px;
+      position: relative;
+    }
+
+    .toolbox {
+      flex: 0 0 280px;
+      min-width: 260px;
+      gap: 1rem;
+    }
+
+    .transcript-panel {
+      flex: 1 1 420px;
+      min-width: 340px;
+      max-height: 76vh;
+      gap: 1.2rem;
+    }
+
+    .transcript-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+      padding-right: 0.4rem;
+      line-height: 1.6;
+      color: var(--text);
+      max-height: calc(76vh - 4rem);
+    }
+
+    .transcript-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 16px;
+      background: rgba(148, 163, 184, 0.16);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+    }
+
+    .transcript-entry p {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    .transcript-entry .transcript-meta {
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .transcript-entry time {
+      font-size: inherit;
+      color: inherit;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+    }
+
+    .transcript-entry.speaker-interviewer {
+      background: rgba(56, 189, 248, 0.22);
+      align-self: flex-start;
+    }
+
+    .transcript-entry.speaker-guest {
+      background: rgba(74, 222, 128, 0.22);
+      align-self: flex-end;
+    }
+
+    .transcript-entry.speaker-guest .transcript-meta {
+      text-align: right;
+    }
+
+    .transcript-entry.speaker-guest p {
+      text-align: left;
+    }
+
+    .transcript-entry.speaker-narration {
+      background: rgba(148, 163, 184, 0.16);
+      align-self: center;
+    }
+
+    .transcript-entry.speaker-other {
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    video {
+      width: 100%;
+      border-radius: 16px;
+      background: #020617;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.4);
+    }
+
+    .loader-overlay {
+      position: absolute;
+      inset: 1.5rem 1.5rem auto;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 18px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.5);
+      z-index: 5;
+    }
+
+    .loader-overlay.hidden {
+      display: none;
+    }
+
+    .loader-title {
+      margin: 0;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .loader-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.2);
+      overflow: hidden;
+    }
+
+    .loader-bar__fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #0ea5e9);
+      transition: width 0.18s ease;
+    }
+
+    .loader-text {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .media-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.86rem;
+      color: var(--muted);
+      align-items: center;
+    }
+
+    .transcript-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+    }
+
+    .transcript-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+    }
+
+
+    .version-toggle {
+      display: inline-flex;
+      background: rgba(148, 163, 184, 0.16);
+      border-radius: 999px;
+      padding: 0.4rem;
+      gap: 0.4rem;
+    }
+
+    .version-toggle button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.4rem 1rem;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .version-toggle button:hover {
+      background: rgba(148, 163, 184, 0.22);
+    }
+
+    .version-toggle button.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+      box-shadow: 0 8px 18px rgba(56, 189, 248, 0.2);
+    }
+
+    .version-toggle button.pending {
+      opacity: 0.75;
+    }
+
+    .version-toggle button:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .word {
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease;
+      border-radius: 6px;
+      padding: 0 0.18rem;
+      margin: 0 -0.05rem;
+    }
+
+    .word:hover {
+      background: rgba(148, 163, 184, 0.2);
+    }
+
+    .word.active {
+      background: rgba(56, 189, 248, 0.28);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+    }
+
+    .links,
+    .toolbox-header {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .links a,
+    .toolbox-refresh {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: background 0.2s ease, border 0.2s ease;
+    }
+
+    .links a:hover,
+    .toolbox-refresh:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .toolbox-refresh {
+      background: rgba(15, 23, 42, 0.5);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .tool-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .tool-button {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(148, 163, 184, 0.14);
+      border-radius: 14px;
+      padding: 0.55rem 0.8rem;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease;
+      font-size: 0.88rem;
+    }
+
+    .tool-button:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .tool-button .status {
+      font-size: 0.78rem;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .tool-button.completed {
+      border-color: rgba(74, 222, 128, 0.45);
+      background: rgba(74, 222, 128, 0.16);
+    }
+
+    .tool-button.completed .status::before {
+      content: "✔ ";
+      color: #4ade80;
+    }
+
+    .tool-button.failed {
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.16);
+    }
+
+    .tool-button.failed .status::before {
+      content: "⚠ ";
+      color: #f87171;
+    }
+
+    .tool-button.pending {
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.16);
+    }
+
+    .tool-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .tool-output {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-left: 0.25rem;
+    }
+
+    .job-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 0.3rem;
+    }
+
+    .job-item {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 14px;
+      padding: 0.65rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .job-item h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      color: rgba(241, 245, 249, 0.88);
+    }
+
+    .job-status {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .job-progress {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.22);
+      overflow: hidden;
+    }
+
+    .job-progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), #0ea5e9);
+      transition: width 0.2s ease;
+    }
+
+    @media (max-width: 960px) {
+      .toolbox {
+        flex: 1 1 100%;
+      }
+      .transcript-panel {
+        max-height: none;
+      }
+      .transcript-scroll {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <img src="logo.svg" alt="Podfree" class="site-logo" />
+      <nav class="top-nav">
+        <a class="nav-link" href="projects.html">Projects</a>
+        <a class="nav-link active" href="editor.html">Editor</a>
+        <a class="nav-link" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="#" id="logout-link">Logout</a>
+      </nav>
+    </div>
+    <h1 id="page-title">Edit Project</h1>
+    <form id="title-form" class="title-form">
+      <label for="title-input">Title</label>
+      <div class="title-row">
+        <input id="title-input" type="text" placeholder="Title will appear here" disabled />
+        <button id="title-save" type="submit" disabled>Save</button>
+        <span id="title-status" class="title-status">Idle</span>
+      </div>
+    </form>
+    <div id="participant-info" class="participant-info">
+      <span id="interviewer-label" class="participant-pill interviewer missing">
+        <strong>Interviewer</strong>
+        <span class="participant-name">—</span>
+      </span>
+      <span id="guest-label" class="participant-pill guest missing">
+        <strong>Guest</strong>
+        <span class="participant-name">—</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel player-panel">
+      <video id="media" controls preload="metadata">
+        <source id="media-source" type="video/mp4" />
+        Your browser does not support HTML video.
+      </video>
+      <div id="conversion-loader" class="loader-overlay hidden">
+        <p class="loader-title">Preparing lightweight copy…</p>
+        <div class="loader-bar"><div id="loader-progress" class="loader-bar__fill"></div></div>
+        <p id="loader-text" class="loader-text">Starting job…</p>
+      </div>
+      <div class="media-meta">
+        <span id="current-time">00:00:00</span>
+        <span id="duration">--:--:--</span>
+      </div>
+      <div class="version-toggle" id="version-toggle">
+        <button type="button" class="active" data-role="original">Full Quality</button>
+        <button type="button" data-role="proxy">Lightweight</button>
+      </div>
+      <div class="status" id="status-line">No workspace selected. Choose a project first.</div>
+    </section>
+    <section class="panel transcript-panel">
+      <div class="transcript-header">
+        <h2>Transcript</h2>
+        <span id="transcript-status" class="status-badge">Idle</span>
+      </div>
+      <div id="transcript" class="transcript-scroll">
+        <p>Open a project with a transcript to preview it here.</p>
+      </div>
+    </section>
+    <aside class="panel toolbox">
+      <div class="toolbox-header">
+        <h2 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
+          Toolbox
+        </h2>
+        <button id="refresh-scripts" class="toolbox-refresh" type="button">↺</button>
+      </div>
+      <div id="tool-list" class="tool-list"></div>
+      <div id="job-list" class="job-list"></div>
+    </aside>
+  </main>
+
+  <script>
+    function redirectToLogin() {
+      const current = window.location.pathname + window.location.search;
+      const next = encodeURIComponent(current);
+      window.location.replace(`/login.html?next=${next}`);
+    }
+
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error('unauthorized');
+      }
+      return response;
+    };
+
+    async function handleLogout(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Logout failed', error);
+      } finally {
+        window.location.replace('/login.html');
+      }
+    }
+
+    const statusLine = document.getElementById('status-line');
+    const media = document.getElementById('media');
+    const mediaSource = document.getElementById('media-source');
+    const conversionLoader = document.getElementById('conversion-loader');
+    const loaderFill = document.getElementById('loader-progress');
+    const loaderText = document.getElementById('loader-text');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    const versionToggle = document.getElementById('version-toggle');
+    const originalButton = versionToggle ? versionToggle.querySelector('[data-role="original"]') : null;
+    const proxyButton = versionToggle ? versionToggle.querySelector('[data-role="proxy"]') : null;
+    const toolList = document.getElementById('tool-list');
+    const jobList = document.getElementById('job-list');
+    const refreshScriptsBtn = document.getElementById('refresh-scripts');
+    const pageTitle = document.getElementById('page-title');
+    const titleForm = document.getElementById('title-form');
+    const titleInput = document.getElementById('title-input');
+    const titleSave = document.getElementById('title-save');
+    const titleStatus = document.getElementById('title-status');
+    const transcriptEl = document.getElementById('transcript');
+    const transcriptStatus = document.getElementById('transcript-status');
+    const participantInfo = document.getElementById('participant-info');
+    const interviewerLabelEl = document.getElementById('interviewer-label');
+    const guestLabelEl = document.getElementById('guest-label');
+    const logoutLink = document.getElementById('logout-link');
+
+    let workspaceInfo = null;
+    let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null };
+    let workspaceSources = { original: null, proxy: null };
+    let currentSourceRole = 'original';
+    const scriptButtons = new Map();
+    let transcriptSource = { kind: null, name: null, url: null };
+    let wordSpans = [];
+    let activeWordIndex = -1;
+    let lastNotesContent = null;
+    let guestName = '';
+    let interviewerName = '';
+    let speakerMap = new Map();
+    const SEEK_EPSILON = 0.2;
+    const MERGE_GAP_SECONDS = 1.5;
+
+    if (logoutLink) {
+      logoutLink.addEventListener('click', handleLogout);
+    }
+
+    function updateParticipantDisplay() {
+      if (interviewerLabelEl) {
+        const nameEl = interviewerLabelEl.querySelector('.participant-name');
+        if (nameEl) {
+          nameEl.textContent = interviewerName || '—';
+        } else {
+          interviewerLabelEl.textContent = interviewerName ? `Interviewer: ${interviewerName}` : 'Interviewer: —';
+        }
+        interviewerLabelEl.classList.toggle('missing', !interviewerName);
+      }
+      if (guestLabelEl) {
+        const nameEl = guestLabelEl.querySelector('.participant-name');
+        if (nameEl) {
+          nameEl.textContent = guestName || '—';
+        } else {
+          guestLabelEl.textContent = guestName ? `Guest: ${guestName}` : 'Guest: —';
+        }
+        guestLabelEl.classList.toggle('missing', !guestName);
+      }
+      if (participantInfo) {
+        const hasNames = Boolean(guestName || interviewerName);
+        participantInfo.classList.toggle('all-missing', !hasNames);
+      }
+    }
+
+    async function setWorkspacePath(path) {
+      const response = await fetch('/api/workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || response.statusText);
+      }
+      return response.json();
+    }
+
+    function workspaceUrl(name) {
+      if (!name) return null;
+      return "/workspace/" + name.split("/").map(encodeURIComponent).join("/");
+    }
+
+    async function applyWorkspaceFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const workspace = params.get('workspace');
+      if (!workspace) return;
+      try {
+        await setWorkspacePath(workspace);
+        try {
+          window.localStorage.setItem('podfreeWorkspacePath', workspace);
+        } catch (error) {
+          console.warn('Unable to persist workspace path from query:', error);
+        }
+      } catch (error) {
+        console.error('Failed to set workspace from URL parameter:', error);
+        statusLine.textContent = `Workspace unavailable: ${error.message}`;
+      } finally {
+        params.delete('workspace');
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+    }
+
+    async function applyPendingWorkspace() {
+      let pendingPath = null;
+      try {
+        pendingPath = window.localStorage.getItem('podfreeWorkspacePath');
+      } catch (error) {
+        console.warn('Unable to read stored workspace path:', error);
+      }
+      if (!pendingPath) return;
+      try {
+        await setWorkspacePath(pendingPath);
+      } catch (error) {
+        console.error('Failed to restore workspace from storage:', error);
+        statusLine.textContent = `Workspace unavailable: ${error.message}`;
+      }
+      try {
+        window.localStorage.removeItem('podfreeWorkspacePath');
+      } catch (error) {
+        console.warn('Unable to clear stored workspace path:', error);
+      }
+    }
+
+    function updateLinks(path) {
+      const params = new URLSearchParams();
+      if (path) params.set('workspace', path);
+      // No auxiliary links in Editor header, but keep placeholder for future use
+      const _suffix = params.toString() ? `?${params.toString()}` : '';
+    }
+
+    function workspaceLabel(summary) {
+      if (!summary || !summary.path) return null;
+      const parts = summary.path.split(/[/\\]+/).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : null;
+    }
+
+    function updatePageHeader(summary) {
+      const label = workspaceLabel(summary);
+      if (pageTitle) {
+        pageTitle.textContent = label ? `Edit ${label}` : 'Edit Project';
+      }
+      if (!label) {
+        setTitleFormState({ disabled: true, value: '', status: 'Open a project from Projects →' });
+      }
+    }
+
+    function setTitleFormState({ disabled = false, value = '', status = 'Idle' } = {}) {
+      if (titleInput) {
+        titleInput.disabled = disabled;
+        if (typeof value === 'string') {
+          titleInput.value = value;
+        }
+      }
+      if (titleSave) {
+        titleSave.disabled = disabled;
+      }
+      if (titleStatus) {
+        titleStatus.textContent = status;
+      }
+    }
+
+    function extractTitleSection(content) {
+      if (typeof content !== 'string') return '';
+      const lines = content.split(/\r?\n/);
+      let idx = lines.findIndex((line) => line.trim().toLowerCase() === '## title');
+      if (idx === -1) return '';
+      idx += 1;
+      while (idx < lines.length && !lines[idx].trim()) idx += 1;
+      return idx < lines.length ? lines[idx].trim() : '';
+    }
+
+    function replaceTitleSection(content, newTitle) {
+      const lines = content.split(/\r?\n/);
+      let idx = lines.findIndex((line) => line.trim().toLowerCase() === '## title');
+      if (idx === -1) {
+        lines.push('', '## Title', newTitle, '');
+        return lines.join('\n');
+      }
+      idx += 1;
+      while (idx < lines.length && !lines[idx].trim()) {
+        idx += 1;
+      }
+      if (idx >= lines.length) {
+        lines.push(newTitle, '');
+      } else {
+        lines[idx] = newTitle;
+      }
+      return lines.join('\n');
+    }
+
+    function extractSectionFirstLine(content, headings) {
+      if (!content) return '';
+      const lines = content.split(/\r?\n/);
+      const normalized = lines.map((line) => line.trim().toLowerCase());
+      let idx = -1;
+      for (const heading of headings) {
+        const target = `## ${heading}`.toLowerCase();
+        idx = normalized.indexOf(target);
+        if (idx !== -1) break;
+      }
+      if (idx === -1) return '';
+      idx += 1;
+      while (idx < lines.length && !lines[idx].trim()) idx += 1;
+      return idx < lines.length ? lines[idx].trim() : '';
+    }
+
+    function normalizeSpeakerId(raw) {
+      if (raw === undefined || raw === null) return { raw: null, numeric: null };
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return { raw, numeric: raw };
+      }
+      const str = String(raw);
+      const match = str.match(/(-?\d+(?:\.\d+)?)/);
+      const numeric = match ? Number(match[1]) : null;
+      return { raw, numeric: Number.isFinite(numeric) ? numeric : null };
+    }
+
+    function buildSpeakerMapping(segments) {
+      const encountered = [];
+      segments.forEach((seg) => {
+        const id = seg.speaker;
+        if (id === undefined || id === null) return;
+        if (!encountered.some((entry) => entry.raw === id)) {
+          encountered.push({ raw: id, ...normalizeSpeakerId(id), order: encountered.length });
+        }
+      });
+      const map = new Map();
+      const assigned = new Set();
+      const assign = (entry, role, label) => {
+        const payload = { role, label };
+        const { raw, numeric } = entry;
+        map.set(raw, payload);
+        const rawStr = typeof raw === 'string' ? raw : null;
+        if (rawStr) {
+          map.set(rawStr, payload);
+        }
+        if (Number.isFinite(numeric)) {
+          map.set(numeric, payload);
+          map.set(String(numeric), payload);
+        }
+        if (role) assigned.add(role);
+      };
+      const interviewerLabel = interviewerName || 'Interviewer';
+      const guestLabel = guestName || 'Guest';
+
+      encountered.forEach((entry, index) => {
+        if (!assigned.has('interviewer')) {
+          assign(entry, 'interviewer', interviewerLabel);
+          return;
+        }
+        if (!assigned.has('guest') && index > 0) {
+          assign(entry, 'guest', guestLabel);
+          return;
+        }
+        const numeric = Number.isFinite(entry.numeric) ? entry.numeric : null;
+        const rawLabel = typeof entry.raw === 'string' ? entry.raw.trim() : '';
+        const label = rawLabel || `Speaker ${Number.isFinite(numeric) ? numeric : index + 1}`;
+        assign(entry, 'other', label);
+      });
+      speakerMap = map;
+    }
+
+    function resolveSpeakerInfo(speaker) {
+      if (speaker === undefined || speaker === null) {
+        return { role: 'narration', label: 'Narration' };
+      }
+      if (speakerMap.has(speaker)) {
+        return speakerMap.get(speaker);
+      }
+      return { role: 'other', label: `Speaker ${speaker}` };
+    }
+
+    function speakerClassForRole(role) {
+      switch (role) {
+        case 'interviewer':
+          return 'speaker-interviewer';
+        case 'guest':
+          return 'speaker-guest';
+        case 'narration':
+          return 'speaker-narration';
+        default:
+          return 'speaker-other';
+      }
+    }
+
+    function resetTranscript(message, status = 'Idle') {
+      transcriptSource = { kind: null, name: null, url: null };
+      wordSpans = [];
+      activeWordIndex = -1;
+      speakerMap = new Map();
+      if (transcriptStatus) {
+        transcriptStatus.textContent = status;
+      }
+      if (transcriptEl) {
+        transcriptEl.textContent = '';
+        const paragraph = document.createElement('p');
+        paragraph.textContent = message;
+        transcriptEl.appendChild(paragraph);
+      }
+    }
+
+    function parseSRT(data) {
+      const entries = [];
+      const blocks = data.split(/\r?\n\r?\n+/);
+      for (const block of blocks) {
+        const lines = block.trim().split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) continue;
+        let idx = 0;
+        if (/^\d+$/.test(lines[0].trim())) {
+          idx = 1;
+        }
+        const times = lines[idx];
+        const match = times.match(/(.+?)\s+-->\s+(.+?)/);
+        if (!match) continue;
+        const text = lines.slice(idx + 1).join(' ').replace(/\s+/g, ' ').trim();
+        if (!text) continue;
+        const label = match[1].split(',')[0];
+        const startSeconds = timecodeToSeconds(label);
+        const endSeconds = parseTimecode(match[2]);
+        entries.push({ time: label, seconds: startSeconds, endSeconds, text, speaker: null });
+      }
+      return entries;
+    }
+
+    function renderTranscript(segments) {
+      if (!transcriptEl || !transcriptStatus) return;
+      if (!segments.length) {
+        transcriptStatus.textContent = 'Empty';
+        transcriptEl.innerHTML = '<p>Transcript file loaded but no caption entries were detected.</p>';
+        return;
+      }
+      transcriptStatus.textContent = 'Ready';
+      wordSpans = [];
+      activeWordIndex = -1;
+      const sorted = [...segments].sort((a, b) => {
+        const aSec = Number(a.seconds ?? Number.MAX_VALUE);
+        const bSec = Number(b.seconds ?? Number.MAX_VALUE);
+        return aSec - bSec;
+      });
+      buildSpeakerMapping(sorted);
+      const described = sorted.map((segment) => ({
+        ...segment,
+        info: resolveSpeakerInfo(segment.speaker),
+      }));
+      const mergedSegments = mergeSegmentsBySpeaker(described);
+      const fragment = document.createDocumentFragment();
+      mergedSegments.forEach((segment) => {
+        const info = segment.info || resolveSpeakerInfo(segment.speaker);
+        const entry = document.createElement('div');
+        entry.className = `transcript-entry ${speakerClassForRole(info?.role)}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'transcript-meta';
+        const labelParts = [];
+        if (info && info.label) labelParts.push(info.label);
+        if (Number.isFinite(segment.seconds)) {
+          labelParts.push(formatTime(Number(segment.seconds)));
+        } else if (segment.time) {
+          labelParts.push(segment.time);
+        }
+        if (!labelParts.length) {
+          labelParts.push('Speaker');
+        }
+        meta.textContent = labelParts.join(' · ');
+        entry.appendChild(meta);
+
+        const paragraph = document.createElement('p');
+
+        const tokens = segmentText(segment.text || '');
+        let words = tokens.filter((token) => token.isWord);
+        const startSeconds = Number(segment.seconds) || 0;
+        let endSeconds = Number(segment.endSeconds);
+        if (!Number.isFinite(endSeconds) || endSeconds <= startSeconds) {
+          const approx = Math.max(words.length * 0.32, 0.6);
+          endSeconds = startSeconds + approx;
+        }
+        if (!words.length && segment.text && segment.text.trim()) {
+          tokens.length = 0;
+          tokens.push({ value: segment.text.trim(), isWord: true });
+          words = tokens;
+        }
+
+        const totalWords = Math.max(words.length, 1);
+        const step = Math.max((endSeconds - startSeconds) / totalWords, 0.12);
+        let wordIndex = 0;
+
+        tokens.forEach((token) => {
+          if (!token.isWord) {
+            paragraph.append(token.value);
+            return;
+          }
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.textContent = token.value;
+          const wordStart = startSeconds + step * wordIndex;
+          const isLastWord = wordIndex === totalWords - 1;
+          let wordEnd = isLastWord ? endSeconds : Math.min(startSeconds + step * (wordIndex + 1), endSeconds);
+          if (!Number.isFinite(wordEnd) || wordEnd <= wordStart) {
+            wordEnd = wordStart + 0.12;
+          }
+          const wordEntry = { element: span, start: wordStart, end: wordEnd };
+          const index = wordSpans.push(wordEntry) - 1;
+          span.dataset.start = String(wordStart);
+          span.title = `Seek to ${formatTime(wordStart)}`;
+          span.addEventListener('click', () => {
+            media.currentTime = Math.max(0, wordStart - SEEK_EPSILON);
+            highlightWordByIndex(index);
+            media.play().catch(() => {});
+          });
+          paragraph.appendChild(span);
+          wordIndex += 1;
+        });
+
+        entry.appendChild(paragraph);
+        fragment.appendChild(entry);
+      });
+      transcriptEl.textContent = '';
+      transcriptEl.appendChild(fragment);
+    }
+
+    function highlightWordByIndex(index) {
+      if (index === activeWordIndex || index < 0 || index >= wordSpans.length) {
+        return;
+      }
+      if (activeWordIndex >= 0) {
+        wordSpans[activeWordIndex].element.classList.remove('active');
+      }
+      const entry = wordSpans[index];
+      entry.element.classList.add('active');
+      activeWordIndex = index;
+      if (!transcriptEl) return;
+      const containerRect = transcriptEl.getBoundingClientRect();
+      const spanRect = entry.element.getBoundingClientRect();
+      const offset = 48;
+      if (spanRect.top < containerRect.top + offset || spanRect.bottom > containerRect.bottom - offset) {
+        entry.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function updateActiveWord(time) {
+      if (!wordSpans.length) return;
+      let index = activeWordIndex;
+      if (index >= 0) {
+        const current = wordSpans[index];
+        if (time >= current.start && time < current.end) {
+          return;
+        }
+        if (time >= current.end) {
+          while (index + 1 < wordSpans.length && time >= wordSpans[index + 1].start) {
+            index += 1;
+            if (time < wordSpans[index].end) break;
+          }
+          if (time >= wordSpans[index].start && time < wordSpans[index].end) {
+            highlightWordByIndex(index);
+            return;
+          }
+        }
+        if (time < current.start) {
+          while (index > 0 && time < wordSpans[index].start) {
+            index -= 1;
+            if (time >= wordSpans[index].start) break;
+          }
+          if (time >= wordSpans[index].start && time < wordSpans[index].end) {
+            highlightWordByIndex(index);
+            return;
+          }
+        }
+      }
+      let low = 0;
+      let high = wordSpans.length - 1;
+      let found = -1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const entry = wordSpans[mid];
+        if (time < entry.start) {
+          high = mid - 1;
+        } else if (time >= entry.end) {
+          low = mid + 1;
+        } else {
+          found = mid;
+          break;
+        }
+      }
+      if (found !== -1) {
+        highlightWordByIndex(found);
+      }
+    }
+
+    function parseTranscriptJSON(data) {
+      const entries = [];
+      if (!data || typeof data !== 'object') {
+        return entries;
+      }
+      const contributions = Array.isArray(data.contributions) ? data.contributions : [];
+      if (contributions.length) {
+        contributions.forEach((item) => {
+          const seconds = item.start_time_seconds ?? item.start_time ?? 0;
+          let endSeconds = item.end_time_seconds ?? item.end_time;
+          const text = (item.text || '').trim();
+          if (!text) return;
+          if (!Number.isFinite(endSeconds) || Number(endSeconds) <= Number(seconds)) {
+            const approx = Math.max(text.split(/\s+/).length * 0.32, 0.6);
+            endSeconds = Number(seconds) + approx;
+          }
+          entries.push({
+            time: formatSecondsLabel(seconds),
+            seconds: Number(seconds) || 0,
+            endSeconds: Number(endSeconds) || (Number(seconds) || 0),
+            text,
+            speaker: item.speaker ?? item.speaker_id ?? null,
+          });
+        });
+        return entries;
+      }
+
+      const utterances = data?.results?.utterances;
+      if (Array.isArray(utterances) && utterances.length) {
+        utterances.forEach((utt) => {
+          const text = (utt.transcript || utt.text || '').trim();
+          if (!text) return;
+          const start = Number(utt.start ?? utt.start_time ?? 0) || 0;
+          let end = Number(utt.end ?? utt.end_time);
+          if (!Number.isFinite(end) || end <= start) {
+            const approx = Math.max(text.split(/\s+/).length * 0.32, 0.6);
+            end = start + approx;
+          }
+          entries.push({
+            time: formatSecondsLabel(start),
+            seconds: start,
+            endSeconds: end,
+            text,
+            speaker: utt.speaker ?? utt.speaker_id ?? null,
+          });
+        });
+        return entries;
+      }
+
+      const paragraphs = data?.results?.channels?.[0]?.alternatives?.[0]?.paragraphs?.paragraphs;
+      if (Array.isArray(paragraphs) && paragraphs.length) {
+        paragraphs.forEach((para) => {
+          const start = para.start ?? 0;
+          let end = para.end;
+          const text = (para.text || '').trim();
+          if (!text) return;
+          if (!Number.isFinite(end) || Number(end) <= Number(start)) {
+            const approx = Math.max(text.split(/\s+/).length * 0.32, 0.6);
+            end = Number(start) + approx;
+          }
+          entries.push({
+            time: formatSecondsLabel(start),
+            seconds: Number(start) || 0,
+            endSeconds: Number(end) || (Number(start) || 0),
+            text,
+            speaker: para.speaker ?? para.speaker_id ?? null,
+          });
+        });
+        return entries;
+      }
+
+      const words = data?.results?.channels?.[0]?.alternatives?.[0]?.words;
+      if (Array.isArray(words) && words.length) {
+        const buffer = [];
+        let currentStart = words[0]?.start ?? 0;
+        let chunkSpeaker = words[0]?.speaker ?? words[0]?.speaker_id ?? null;
+        words.forEach((word) => {
+          if ((buffer.join(' ') + ' ' + (word.word || '')).length > 80) {
+            const chunkEnd = word.start ?? word.end ?? (currentStart + Math.max(buffer.length * 0.32, 0.6));
+            entries.push({
+              time: formatSecondsLabel(currentStart),
+              seconds: Number(currentStart) || 0,
+              endSeconds: Number(chunkEnd) || Number(currentStart) || 0,
+              text: buffer.join(' '),
+              speaker: chunkSpeaker,
+            });
+            buffer.length = 0;
+            currentStart = word.start ?? currentStart;
+            chunkSpeaker = word.speaker ?? word.speaker_id ?? chunkSpeaker;
+          }
+          if (word.word) buffer.push(word.word);
+        });
+        if (buffer.length) {
+          const approx = Math.max(buffer.length * 0.32, 0.6);
+          entries.push({
+            time: formatSecondsLabel(currentStart),
+            seconds: Number(currentStart) || 0,
+            endSeconds: Number(currentStart + approx) || 0,
+            text: buffer.join(' '),
+            speaker: chunkSpeaker,
+          });
+        }
+      }
+      return entries;
+    }
+
+    async function loadTranscript() {
+      if (!transcriptSource || !transcriptSource.url) {
+        resetTranscript('No transcript file detected for this project.', 'Missing');
+        return;
+      }
+      if (transcriptStatus) transcriptStatus.textContent = 'Loading…';
+      try {
+        const response = await fetch(transcriptSource.url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        if (transcriptSource.kind === 'json') {
+          const data = await response.json();
+          const segments = parseTranscriptJSON(data);
+          if (segments.length) {
+            renderTranscript(segments);
+            updateActiveWord(media.currentTime || 0);
+          } else {
+            resetTranscript('Transcript JSON loaded but no entries were found.', 'Empty');
+            return;
+          }
+        } else {
+          const text = await response.text();
+          const segments = parseSRT(text);
+          renderTranscript(segments);
+          updateActiveWord(media.currentTime || 0);
+        }
+      } catch (error) {
+        console.error(error);
+        resetTranscript(`Unable to load transcript: ${error.message}`, 'Error');
+      }
+    }
+
+    async function loadNotesTitle() {
+      try {
+        const response = await fetch('/api/notes');
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const data = await response.json();
+        lastNotesContent = data.content || '';
+        const currentTitle = extractTitleSection(lastNotesContent) || '';
+        guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
+        interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
+        updateParticipantDisplay();
+        setTitleFormState({ disabled: false, value: currentTitle, status: 'Idle' });
+      } catch (error) {
+        console.error(error);
+        lastNotesContent = null;
+        guestName = '';
+        interviewerName = '';
+        updateParticipantDisplay();
+        setTitleFormState({ disabled: true, value: '', status: 'Notes unavailable' });
+      }
+    }
+
+    function describe(name) {
+      return name || '—';
+    }
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return '--:--:--';
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      return [hrs, mins, secs].map((part) => String(part).padStart(2, '0')).join(':');
+    }
+
+    function formatSecondsLabel(seconds) {
+      return formatTime(Math.max(0, Number(seconds) || 0));
+    }
+
+    function timecodeToSeconds(code) {
+      if (typeof code !== 'string') return 0;
+      const clean = code.replace(',', '.');
+      const parts = clean.split(':').map(Number);
+      if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
+        return 0;
+      }
+      const [hrs, mins, secs] = parts;
+      return hrs * 3600 + mins * 60 + secs;
+    }
+
+    function parseTimecode(value) {
+      const match = value.trim().match(/(\d+):(\d+):(\d+)[,\.]?(\d+)?/);
+      if (!match) return 0;
+      const [, hh, mm, ss, ms = '0'] = match;
+      return Number(hh) * 3600 + Number(mm) * 60 + Number(ss) + Number(ms) / 1000;
+    }
+
+    function segmentText(text) {
+      if (window.Intl && Intl.Segmenter) {
+        const segmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+        return Array.from(segmenter.segment(text)).map(({ segment, isWordLike }) => ({
+          value: segment,
+          isWord: Boolean(isWordLike && segment.trim()),
+        }));
+      }
+      return (text.match(/\S+|\s+/g) || []).map((segment) => ({
+        value: segment,
+        isWord: Boolean(segment.trim()),
+      }));
+    }
+
+    function normalizeSegmentTiming(segment) {
+      const info = segment.info || resolveSpeakerInfo(segment.speaker);
+      const safeText = typeof segment.text === 'string' ? segment.text.trim() : '';
+      const startValue = Number(segment.seconds);
+      const startSeconds = Number.isFinite(startValue) ? startValue : 0;
+      let endValue = Number(segment.endSeconds);
+      if (!Number.isFinite(endValue) || endValue <= startSeconds) {
+        const tokenCount = safeText ? safeText.split(/\s+/).length : 0;
+        const approx = Math.max(tokenCount * 0.32, 0.6);
+        endValue = startSeconds + approx;
+      }
+      const timeLabel = segment.time || formatSecondsLabel(startSeconds);
+      return {
+        ...segment,
+        info,
+        text: safeText,
+        seconds: startSeconds,
+        endSeconds: endValue,
+        time: timeLabel,
+      };
+    }
+
+    function segmentsSeemContinuous(previous, current) {
+      const prevEnd = Number(previous.endSeconds ?? previous.seconds ?? 0);
+      const gap = Number(current.seconds ?? 0) - prevEnd;
+      if (!Number.isFinite(gap)) return false;
+      return gap <= MERGE_GAP_SECONDS && gap >= -0.75;
+    }
+
+    function mergeSegmentsBySpeaker(segments) {
+      const merged = [];
+      segments.forEach((segment) => {
+        const normalized = normalizeSegmentTiming(segment);
+        if (!normalized.text) {
+          return;
+        }
+        const last = merged[merged.length - 1];
+        const sameSpeaker =
+          last &&
+          normalized.info &&
+          last.info &&
+          ((normalized.speaker === last.speaker) ||
+            (normalized.info.role === last.info.role && normalized.info.label === last.info.label));
+        if (last && sameSpeaker && segmentsSeemContinuous(last, normalized)) {
+          const combined = `${last.text} ${normalized.text}`.trim();
+          last.text = combined.replace(/\s+/g, ' ');
+          last.endSeconds = Math.max(last.endSeconds, normalized.endSeconds);
+          last.rawParts.push(normalized);
+        } else {
+          const entry = {
+            ...normalized,
+            rawParts: normalized.rawParts ? [...normalized.rawParts] : [normalized],
+          };
+          merged.push(entry);
+        }
+      });
+      return merged;
+    }
+
+    function updateCurrentTime() {
+      if (currentTimeEl) {
+        currentTimeEl.textContent = formatTime(media.currentTime || 0);
+      }
+      updateActiveWord(media.currentTime || 0);
+    }
+
+    function updateVersionButtons() {
+      if (!originalButton || !proxyButton) return;
+      originalButton.disabled = !workspaceSources.original;
+      proxyButton.disabled = false;
+      proxyButton.classList.toggle('pending', !workspaceSources.proxy);
+      originalButton.classList.toggle('active', currentSourceRole === 'original');
+      proxyButton.classList.toggle('active', currentSourceRole === 'proxy');
+    }
+
+    function resetPlayerState(message) {
+      media.pause();
+      mediaSource.removeAttribute('src');
+      media.load();
+      if (currentTimeEl) currentTimeEl.textContent = '00:00:00';
+      if (durationEl) durationEl.textContent = '--:--:--';
+      statusLine.textContent = message;
+      updateVersionButtons();
+    }
+
+    function configureVideoSource(preferredRole) {
+      if (preferredRole) {
+        currentSourceRole = preferredRole;
+      }
+      if (currentSourceRole === 'proxy' && !workspaceSources.proxy) {
+        currentSourceRole = workspaceSources.original ? 'original' : 'proxy';
+      }
+      if (currentSourceRole === 'original' && !workspaceSources.original && workspaceSources.proxy) {
+        currentSourceRole = 'proxy';
+      }
+
+      const url = workspaceSources[currentSourceRole];
+      if (!url) {
+        resetPlayerState('Select a project with a video file to begin playback.');
+        return;
+      }
+
+      const fileName = currentSourceRole === 'proxy' ? workspaceFiles.proxy : workspaceFiles.video;
+      const wasPaused = media.paused;
+      const previousTime = media.currentTime || 0;
+      mediaSource.src = url;
+      media.load();
+      media.addEventListener(
+        'loadedmetadata',
+        () => {
+          if (durationEl) durationEl.textContent = formatTime(media.duration);
+          const safeTime = Math.min(previousTime, Math.max(0, media.duration - 0.2));
+          media.currentTime = safeTime;
+          if (!wasPaused) {
+            media.play().catch(() => {});
+          }
+          updateCurrentTime();
+        },
+        { once: true },
+      );
+      statusLine.textContent = `Playing ${describe(fileName)} (${currentSourceRole === 'proxy' ? 'Lightweight' : 'Full Quality'})`;
+      updateVersionButtons();
+    }
+
+    function computeProxyName() {
+      const videoName = workspaceFiles.video;
+      if (!videoName) return 'proxy.mp4';
+      const lastDot = videoName.lastIndexOf('.');
+      const ext = lastDot >= 0 ? videoName.slice(lastDot) : '.mp4';
+      const base = lastDot >= 0 ? videoName.slice(0, lastDot) : videoName;
+      return `${base}_ultralow${ext}`;
+    }
+
+    function showLoader(message) {
+      if (!conversionLoader) return;
+      conversionLoader.classList.remove('hidden');
+      if (loaderFill) loaderFill.style.width = '0';
+      if (loaderText) loaderText.textContent = message || 'Preparing…';
+    }
+
+    function updateLoader(progress, message) {
+      if (loaderFill) {
+        loaderFill.style.width = `${Math.max(0, Math.min(progress, 100))}%`;
+      }
+      if (loaderText && message) {
+        loaderText.textContent = message;
+      }
+    }
+
+    function hideLoader() {
+      if (!conversionLoader) return;
+      conversionLoader.classList.add('hidden');
+    }
+
+    async function ensureProxyExists() {
+      if (!workspaceInfo || !workspaceInfo.valid) {
+        alert('Open a project with the required files first.');
+        return false;
+      }
+      if (!workspaceFiles.video) {
+        alert('No source video found in the current workspace.');
+        return false;
+      }
+      if (workspaceFiles.proxy && workspaceSources.proxy) {
+        return true;
+      }
+      const targetName = workspaceFiles.proxy || computeProxyName();
+      showLoader('Starting conversion…');
+      try {
+        const payload = { source: workspaceFiles.video, target: targetName };
+        const response = await fetch('/api/create-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        if (data.status === 'exists') {
+          hideLoader();
+          await loadWorkspace({ refresh: true });
+          return true;
+        }
+        const jobId = data.job_id;
+        if (!jobId) {
+          hideLoader();
+          await loadWorkspace({ refresh: true });
+          return true;
+        }
+        const job = await waitForJob(jobId, (update) => {
+          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
+          updateLoader(progress, `${update.message || 'encoding'} (${progress.toFixed(1)}%)`);
+        });
+        hideLoader();
+        if (job.status === 'completed') {
+          await loadWorkspace({ refresh: true });
+          return true;
+        }
+        alert(`Proxy conversion failed: ${job.message || 'Unknown error'}`);
+        return false;
+      } catch (error) {
+        console.error(error);
+        hideLoader();
+        alert(`Proxy conversion failed: ${error.message}`);
+        return false;
+      }
+    }
+
+    async function applyWorkspaceSummary(summary) {
+      workspaceInfo = summary;
+      updateLinks(summary?.path);
+      updatePageHeader(summary);
+      if (!summary || !summary.valid) {
+        workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null };
+        workspaceSources = { original: null, proxy: null };
+        currentSourceRole = 'original';
+        transcriptSource = { kind: null, name: null, url: null };
+        guestName = '';
+        interviewerName = '';
+        speakerMap = new Map();
+        updateParticipantDisplay();
+        resetPlayerState('Workspace not ready. Make sure the project contains a video file.');
+        resetTranscript('Open a project with a transcript to preview it here.');
+        lastNotesContent = null;
+        setTitleFormState({ disabled: true, value: '', status: 'Open a project from Projects →' });
+        return;
+      }
+      workspaceFiles = Object.assign({ notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null }, summary.files);
+      workspaceSources = {
+        original: workspaceUrl(workspaceFiles.video),
+        proxy: workspaceUrl(workspaceFiles.proxy),
+      };
+      currentSourceRole = workspaceSources.proxy ? 'proxy' : 'original';
+      transcriptSource = { kind: null, name: null, url: null };
+      if (workspaceFiles.transcript_json) {
+        transcriptSource = { kind: 'json', name: workspaceFiles.transcript_json, url: workspaceUrl(workspaceFiles.transcript_json) };
+      } else if (workspaceFiles.srt) {
+        transcriptSource = { kind: 'srt', name: workspaceFiles.srt, url: workspaceUrl(workspaceFiles.srt) };
+      }
+      guestName = '';
+      interviewerName = '';
+      updateParticipantDisplay();
+      setTitleFormState({ disabled: true, value: '', status: 'Loading…' });
+      await loadNotesTitle();
+      updateParticipantDisplay();
+      if (!workspaceSources.original && !workspaceSources.proxy) {
+        resetPlayerState('No video found in this project. Upload an MP4 from the Projects page.');
+      } else {
+        configureVideoSource();
+      }
+      if (transcriptSource.kind) {
+        await loadTranscript();
+      } else {
+        resetTranscript('No transcript file detected for this project.', 'Missing');
+      }
+    }
+
+    async function loadWorkspace({ refresh = false } = {}) {
+      try {
+        const query = refresh ? '?refresh=1' : '';
+        const response = await fetch(`/api/workspace${query}`);
+        const data = await response.json();
+        await applyWorkspaceSummary(data);
+      } catch (error) {
+        console.error(error);
+        statusLine.textContent = `Unable to load workspace: ${error.message}`;
+        resetTranscript('Unable to load workspace details.', 'Error');
+        setTitleFormState({ disabled: true, value: '', status: 'Workspace error' });
+      }
+    }
+
+    function addJobCard(jobId, label) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'job-item';
+      wrapper.id = `job-${jobId}`;
+
+      const title = document.createElement('h3');
+      title.textContent = label;
+      wrapper.appendChild(title);
+
+      const status = document.createElement('div');
+      status.className = 'job-status';
+      status.textContent = 'queued';
+      wrapper.appendChild(status);
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'job-progress';
+      const progressFill = document.createElement('span');
+      progressBar.appendChild(progressFill);
+      wrapper.appendChild(progressBar);
+
+      jobList.prepend(wrapper);
+      return { wrapper, status, progressFill };
+    }
+
+    async function waitForJob(jobId, onUpdate) {
+      while (true) {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (!response.ok) break;
+        const job = await response.json();
+        if (onUpdate) onUpdate(job);
+        if (job.status === 'completed' || job.status === 'failed') {
+          return job;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+      return { status: 'failed', message: 'job not found' };
+    }
+
+    async function runScript(scriptName, button) {
+      const statusSpan = button.querySelector('.status');
+      const scriptLabel = button.dataset.label || scriptName;
+      try {
+        button.disabled = true;
+        button.classList.remove('completed', 'failed', 'pending');
+        if (statusSpan) statusSpan.textContent = 'Running…';
+        const response = await fetch('/api/run-script', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ script: scriptName }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        const card = addJobCard(data.job_id, `Run ${scriptLabel}`);
+        const job = await waitForJob(data.job_id, (update) => {
+          card.status.textContent = `${update.status} — ${update.message || ''}`;
+          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
+          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
+        });
+        if (job.status === 'completed') {
+          button.classList.remove('failed', 'pending');
+          button.classList.add('completed');
+          if (statusSpan) statusSpan.textContent = 'Done';
+        } else {
+          button.classList.remove('completed');
+          button.classList.add('failed');
+          if (statusSpan) statusSpan.textContent = 'Failed';
+        }
+        await loadWorkspace({ refresh: true });
+        await loadScripts();
+      } catch (error) {
+        console.error(error);
+        alert(`Failed to run ${scriptName}: ${error.message}`);
+        button.classList.add('failed');
+        if (statusSpan) statusSpan.textContent = 'Error';
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function renderScripts(list) {
+      toolList.textContent = '';
+      scriptButtons.clear();
+      if (!list.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No scripts found in the Podfree/scripts folder.';
+        empty.style.color = 'var(--muted)';
+        empty.style.fontSize = '0.85rem';
+        toolList.appendChild(empty);
+        return;
+      }
+      list.forEach((entry) => {
+        const { name, label, status, outputs = [] } = entry;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tool-entry';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tool-button';
+        button.dataset.script = name;
+        button.dataset.label = label;
+
+        let statusText = 'Idle';
+        if (status === 'ready') {
+          statusText = 'Ready';
+          button.classList.add('completed');
+        } else if (status === 'missing') {
+          statusText = 'Pending';
+          button.classList.add('pending');
+        }
+
+        button.innerHTML = `<span>${label}</span><span class="status">${statusText}</span>`;
+        button.addEventListener('click', () => runScript(name, button));
+        wrapper.appendChild(button);
+
+        if (outputs && outputs.length) {
+          button.title = `Outputs:\n${outputs.join('\n')}`;
+          const outputNote = document.createElement('div');
+          outputNote.className = 'tool-output';
+          outputNote.textContent = `Outputs: ${outputs.join(', ')}`;
+          wrapper.appendChild(outputNote);
+        }
+
+        toolList.appendChild(wrapper);
+        scriptButtons.set(name, button);
+      });
+    }
+
+    async function loadScripts() {
+      try {
+        const response = await fetch('/api/scripts');
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const data = await response.json();
+        renderScripts(data.scripts || []);
+      } catch (error) {
+        console.error(error);
+        alert('Unable to load script list: ' + error.message);
+      }
+    }
+
+    if (refreshScriptsBtn) {
+      refreshScriptsBtn.addEventListener('click', loadScripts);
+    }
+
+    if (versionToggle) {
+      versionToggle.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-role]');
+        if (!button) return;
+        const role = button.dataset.role;
+        if (role === 'proxy' && !workspaceSources.proxy) {
+          const created = await ensureProxyExists();
+          if (created) {
+            configureVideoSource('proxy');
+          }
+          return;
+        }
+        configureVideoSource(role);
+      });
+    }
+
+    media.addEventListener('timeupdate', updateCurrentTime);
+    media.addEventListener('seeked', updateCurrentTime);
+    media.addEventListener('loadeddata', updateCurrentTime);
+
+    if (titleForm) {
+      titleForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!titleInput || !titleSave) return;
+        const newTitle = titleInput.value.trim();
+        if (!newTitle) {
+          setTitleFormState({ disabled: false, value: '', status: 'Title cannot be empty' });
+          return;
+        }
+        if (!lastNotesContent) {
+          await loadNotesTitle();
+          if (!lastNotesContent) {
+            setTitleFormState({ disabled: true, value: newTitle, status: 'Notes unavailable' });
+            return;
+          }
+        }
+        setTitleFormState({ disabled: true, value: newTitle, status: 'Saving…' });
+        try {
+          const updated = replaceTitleSection(lastNotesContent, newTitle);
+          const response = await fetch('/api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: updated }),
+          });
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+          const data = await response.json();
+          lastNotesContent = updated;
+          const savedTitle = extractTitleSection(updated);
+          setTitleFormState({ disabled: false, value: savedTitle, status: `Saved at ${new Date().toLocaleTimeString()}` });
+        } catch (error) {
+          console.error(error);
+          setTitleFormState({ disabled: false, value: newTitle, status: 'Save failed' });
+          alert('Unable to update title: ' + error.message);
+        }
+      });
+    }
+
+    setTitleFormState({ disabled: true, value: '', status: 'Open a project from Projects →' });
+
+    (async () => {
+      await applyWorkspaceFromQuery();
+      await applyPendingWorkspace();
+      await loadWorkspace();
+      await loadScripts();
+    })();
+  </script>
+</body>
+</html>

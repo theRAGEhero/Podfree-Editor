@@ -1,0 +1,9 @@
+.git
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.pyc
+projects/
+scripts/__pycache__/
+app/__pycache__/

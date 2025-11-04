@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="320" height="80" rx="18" fill="#0f172a"/>
+  <text x="40" y="52" font-family="'Inter', 'Segoe UI', sans-serif" font-size="46" font-weight="700" fill="url(#grad)">
+    Podfree
+  </text>
+</svg>

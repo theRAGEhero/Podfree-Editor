@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Podfree Notes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #f87171;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.1), transparent 58%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      padding: 1.5rem clamp(1rem, 2vw, 2.5rem) 2.5rem;
+    }
+
+    header {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-logo {
+      height: 48px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 0.35rem;
+      margin-bottom: 1rem;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(148, 163, 184, 0.2);
+      color: var(--text);
+    }
+
+    .nav-link.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+    }
+
+    .workspace-banner {
+      margin-top: 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 18px;
+      padding: 0.9rem 1.2rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .workspace-banner strong { color: var(--text); }
+
+    .workspace-banner a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 1.2rem + 2vw, 2.8rem);
+      letter-spacing: 0.015em;
+    }
+
+    p.description {
+      color: var(--muted);
+      max-width: 70ch;
+      margin: 0.75rem 0 0;
+      line-height: 1.7;
+    }
+
+    .workspace {
+      display: flex;
+      gap: 1.5rem;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 1.25rem 1.5rem 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .editor-panel {
+      flex: 1 1 420px;
+      min-width: 360px;
+    }
+
+    .preview-panel {
+      flex: 1 1 420px;
+      min-width: 360px;
+      max-height: 78vh;
+      overflow: hidden;
+    }
+
+    .editor-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .file-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .button-row {
+      display: inline-flex;
+      gap: 0.5rem;
+    }
+
+    button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 480px;
+      resize: vertical;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 14px;
+      padding: 1rem;
+      color: var(--text);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      font-family: "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, monospace;
+    }
+
+    .status-line {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .status-line.unsaved {
+      color: var(--danger);
+    }
+
+    .preview-scroll {
+      overflow-y: auto;
+      padding-right: 0.5rem;
+      line-height: 1.7;
+    }
+
+    .preview-scroll h1,
+    .preview-scroll h2,
+    .preview-scroll h3,
+    .preview-scroll h4 {
+      margin-top: 1.6em;
+      margin-bottom: 0.6em;
+    }
+
+    .preview-scroll pre {
+      background: rgba(15, 23, 42, 0.75);
+      padding: 0.75rem;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+
+    .preview-scroll blockquote {
+      margin: 0;
+      padding-left: 1rem;
+      border-left: 3px solid rgba(148, 163, 184, 0.4);
+      color: rgba(248, 250, 252, 0.82);
+    }
+
+    .preview-scroll code {
+      background: rgba(148, 163, 184, 0.18);
+      padding: 0.1rem 0.3rem;
+      border-radius: 6px;
+    }
+
+    @media (max-width: 960px) {
+      .preview-panel {
+        max-height: none;
+      }
+      textarea {
+        min-height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <img src="logo.svg" alt="Podfree" class="site-logo" />
+      <nav class="top-nav">
+        <a class="nav-link" href="projects.html">Projects</a>
+        <a class="nav-link" href="editor.html">Editor</a>
+        <a class="nav-link active" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="#" id="logout-link">Logout</a>
+      </nav>
+    </div>
+    <h1 id="page-title">Notes</h1>
+    <p class="description">
+      Review and edit the episode notes in Markdown. Use the dual-pane layout to keep track of the rendered preview, then save or restore changes without leaving the browser.
+    </p>
+    <div id="workspace-banner" class="workspace-banner">
+      <span>No workspace selected. Create or open a project to begin.</span>
+      <a href="projects.html">Projects →</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel editor-panel">
+      <div class="editor-toolbar">
+        <div class="file-meta">
+          <span id="notes-filename">—</span>
+          <span id="notes-mtime">Loaded: —</span>
+        </div>
+        <div class="button-row">
+          <button id="restore-button" type="button">Restore</button>
+          <button id="save-button" type="button">Save</button>
+        </div>
+      </div>
+      <textarea id="notes-editor" spellcheck="false" placeholder="Loading notes…"></textarea>
+      <div id="status-line" class="status-line">Ready</div>
+    </section>
+
+    <section class="panel preview-panel">
+      <h2 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">Preview</h2>
+      <div id="preview" class="preview-scroll">Loading…</div>
+    </section>
+  </main>
+
+  <script>
+    function redirectToLogin() {
+      const current = window.location.pathname + window.location.search;
+      const next = encodeURIComponent(current);
+      window.location.replace(`/login.html?next=${next}`);
+    }
+
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("unauthorized");
+      }
+      return response;
+    };
+
+    async function handleLogout(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      try {
+        await fetch("/api/logout", { method: "POST" });
+      } catch (error) {
+        console.error("Logout failed", error);
+      } finally {
+        window.location.replace("/login.html");
+      }
+    }
+
+    const editor = document.getElementById("notes-editor");
+    const preview = document.getElementById("preview");
+    const statusLine = document.getElementById("status-line");
+    const filenameEl = document.getElementById("notes-filename");
+    const mtimeEl = document.getElementById("notes-mtime");
+    const saveButton = document.getElementById("save-button");
+    const restoreButton = document.getElementById("restore-button");
+    const workspaceBanner = document.getElementById("workspace-banner");
+    const pageTitle = document.getElementById("page-title");
+    const logoutLink = document.getElementById("logout-link");
+
+    let originalContent = "";
+    let debounceTimer = null;
+    let isSaving = false;
+    let workspaceInfo = null;
+
+    if (logoutLink) {
+      logoutLink.addEventListener("click", handleLogout);
+    }
+
+    async function setWorkspacePath(path) {
+      const response = await fetch("/api/workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || response.statusText);
+      }
+      return response.json();
+    }
+
+    async function applyWorkspaceFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const workspace = params.get("workspace");
+      if (!workspace) return;
+      try {
+        await setWorkspacePath(workspace);
+        try {
+          window.localStorage.setItem("podfreeWorkspacePath", workspace);
+        } catch (error) {
+          console.warn("Unable to persist workspace path from query:", error);
+        }
+      } catch (error) {
+        console.error("Failed to set workspace from URL parameter:", error);
+      } finally {
+        params.delete("workspace");
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash || ""}`;
+        window.history.replaceState({}, "", nextUrl);
+      }
+    }
+
+    async function applyPendingWorkspace() {
+      let pendingPath = null;
+      try {
+        pendingPath = window.localStorage.getItem("podfreeWorkspacePath");
+      } catch (error) {
+        console.warn("Unable to read stored workspace path:", error);
+      }
+      if (pendingPath) {
+        try {
+          await setWorkspacePath(pendingPath);
+        } catch (error) {
+          console.error("Failed to restore workspace from storage:", error);
+        }
+        try {
+          window.localStorage.removeItem("podfreeWorkspacePath");
+        } catch (error) {
+          console.warn("Unable to clear stored workspace path:", error);
+        }
+      }
+    }
+
+    function formatTimestamp(epochSeconds) {
+      const date = new Date(epochSeconds * 1000);
+      return date.toLocaleString();
+    }
+
+    function setStatus(text, { unsaved = false } = {}) {
+      statusLine.textContent = text;
+      statusLine.classList.toggle("unsaved", unsaved);
+    }
+
+    function describe(name) {
+      return name || "—";
+    }
+
+    function workspaceLabel(summary) {
+      if (!summary || !summary.path) return null;
+      const parts = String(summary.path).split(/[/\\]+/).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : null;
+    }
+
+    function updatePageTitle() {
+      if (!pageTitle) return;
+      const label = workspaceLabel(workspaceInfo);
+      pageTitle.textContent = label ? `Notes for ${label}` : "Notes";
+    }
+
+    function updateWorkspaceDisplay() {
+      if (!workspaceBanner) return;
+      if (workspaceInfo && workspaceInfo.valid) {
+        const files = workspaceInfo.files || {};
+        const summary = `Notes: ${describe(files.notes)} · SRT: ${describe(files.srt)} · Video: ${describe(files.video)} · Audio: ${describe(files.audio)}`;
+        workspaceBanner.innerHTML = `<span>Workspace: <strong>${workspaceInfo.path}</strong><br>${summary}</span><a href="projects.html">Projects →</a>`;
+      } else if (workspaceInfo && workspaceInfo.path) {
+        workspaceBanner.innerHTML = `<span>Workspace: <strong>${workspaceInfo.path}</strong><br>The folder is not accessible. Open a different project.</span><a href="projects.html">Projects →</a>`;
+      } else {
+        workspaceBanner.innerHTML = `<span>No workspace selected. Create or open a project to begin.</span><a href="projects.html">Projects →</a>`;
+      }
+      updatePageTitle();
+    }
+
+    function setEditorEnabled(enabled) {
+      editor.disabled = !enabled;
+      saveButton.disabled = !enabled;
+      restoreButton.disabled = !enabled;
+    }
+
+    async function renderPreview(content) {
+      try {
+        const response = await fetch("/api/render_markdown", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        });
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const data = await response.json();
+        preview.innerHTML = data.html || "<p>(No preview available)</p>";
+      } catch (error) {
+        console.error(error);
+        preview.innerHTML = `<p style="color: var(--danger);">Preview failed: ${error.message}</p>`;
+      }
+    }
+
+    function schedulePreviewUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        renderPreview(editor.value);
+      }, 400);
+    }
+
+    function handleInput() {
+      const dirty = editor.value !== originalContent;
+      setStatus(dirty ? "Unsaved changes" : "No pending changes", { unsaved: dirty });
+      saveButton.disabled = isSaving;
+      schedulePreviewUpdate();
+    }
+
+    async function loadNotes() {
+      if (!workspaceInfo || !workspaceInfo.valid) {
+        setEditorEnabled(false);
+        editor.value = "";
+        preview.innerHTML = "<p>Open a project to load its notes.</p>";
+        setStatus("Workspace not set");
+        filenameEl.textContent = "—";
+        mtimeEl.textContent = "Loaded: —";
+        return;
+      }
+
+      try {
+        setStatus("Loading notes…");
+        const response = await fetch("/api/notes");
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || response.statusText);
+        }
+        const data = await response.json();
+        originalContent = data.content || "";
+        editor.value = originalContent;
+        filenameEl.textContent = data.filename || "Notes";
+        if (data.mtime) {
+          mtimeEl.textContent = `Loaded: ${formatTimestamp(data.mtime)}`;
+        }
+        preview.innerHTML = data.html || "<p>(No preview available)</p>";
+        setEditorEnabled(true);
+        setStatus("Ready");
+      } catch (error) {
+        console.error(error);
+        preview.innerHTML = `<p style="color: var(--danger);">Unable to load notes: ${error.message}</p>`;
+        setStatus("Failed to load notes", { unsaved: false });
+        setEditorEnabled(false);
+      }
+    }
+
+    async function saveNotes() {
+      if (isSaving) return;
+      isSaving = true;
+      saveButton.disabled = true;
+      setStatus("Saving…");
+      try {
+        const response = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: editor.value }),
+        });
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const data = await response.json();
+        originalContent = editor.value;
+        setStatus(`Saved at ${new Date().toLocaleTimeString()}`);
+        if (data.mtime) {
+          mtimeEl.textContent = `Saved: ${formatTimestamp(data.mtime)}`;
+        }
+        schedulePreviewUpdate();
+      } catch (error) {
+        console.error(error);
+        setStatus("Save failed", { unsaved: true });
+        alert("Unable to save notes: " + error.message);
+      } finally {
+        isSaving = false;
+        saveButton.disabled = false;
+      }
+    }
+
+    async function loadWorkspace({ refresh = false } = {}) {
+      try {
+        const query = refresh ? "?refresh=1" : "";
+        const response = await fetch(`/api/workspace${query}`);
+        const data = await response.json();
+        workspaceInfo = data;
+        updateWorkspaceDisplay();
+        updatePageTitle();
+        await loadNotes();
+      } catch (error) {
+        console.error(error);
+        if (workspaceBanner) {
+          workspaceBanner.innerHTML = `<span>Error loading workspace: ${error.message}</span><a href="projects.html">Projects →</a>`;
+        }
+        setEditorEnabled(false);
+      }
+    }
+
+    editor.addEventListener("input", handleInput);
+    saveButton.addEventListener("click", saveNotes);
+    restoreButton.addEventListener("click", () => {
+      if (editor.value !== originalContent) {
+        const confirmRestore = confirm("Discard unsaved changes and reload from disk?");
+        if (!confirmRestore) return;
+      }
+      loadNotes();
+    });
+    // Workspace selection is now driven from projects.html; this page only reflects the active workspace.
+  (async () => {
+    await applyWorkspaceFromQuery();
+    await applyPendingWorkspace();
+    await loadWorkspace();
+  })();
+</script>
+</body>
+</html>

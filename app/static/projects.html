@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Podfree Projects</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #f87171;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.1), transparent 58%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      padding: 1.5rem clamp(1rem, 2vw, 2.5rem) 2.5rem;
+    }
+
+    header {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-logo {
+      height: 48px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 0.35rem;
+      margin-bottom: 1rem;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover { background: rgba(148, 163, 184, 0.2); color: var(--text); }
+    .nav-link.active { background: var(--accent); color: #0b1120; font-weight: 600; }
+
+    h1 { margin: 0; font-size: clamp(1.9rem, 1.2rem + 2vw, 2.8rem); letter-spacing: 0.015em; }
+    p.description { color: var(--muted); max-width: 70ch; margin: 0.75rem 0 0; line-height: 1.7; }
+
+    .workspace-card, .projects-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 18px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .create-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .create-form input[type="text"] {
+      flex: 1 1 260px;
+      min-width: 220px;
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    button, .file-input-label {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover:not(:disabled), .file-input-label:hover { background: rgba(56, 189, 248, 0.26); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .project-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .project-card.selected {
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+    }
+
+    .project-card.missing-video {
+      border-color: rgba(248, 113, 113, 0.45);
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.3);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .project-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .project-path {
+      font-size: 0.78rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .project-files {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    input[type="file"] { display: none; }
+
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .controls-row button.delete {
+      border-color: rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.18);
+      color: #fca5a5;
+    }
+
+    .controls-row button.delete:hover {
+      background: rgba(248, 113, 113, 0.3);
+      color: #fee2e2;
+    }
+
+    .selection-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .selection-row button {
+      margin-left: auto;
+    }
+
+    .select-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .upload-loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      color: var(--text);
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .upload-loader.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <img src="logo.svg" alt="Podfree" class="site-logo" />
+      <nav class="top-nav">
+        <a class="nav-link active" href="projects.html">Projects</a>
+        <a class="nav-link" href="editor.html">Editor</a>
+        <a class="nav-link" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="#" id="logout-link">Logout</a>
+      </nav>
+    </div>
+    <h1>Projects</h1>
+    <p class="description">Create isolated projects, upload source files, and launch the player or editor against them with one click.</p>
+
+    <section class="workspace-card">
+      <h2 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">Create Project</h2>
+      <form id="create-form" class="create-form">
+        <input id="project-name" type="text" placeholder="Project name (e.g. Episode 29)" required />
+        <button type="submit">Create</button>
+        <button type="button" id="refresh-projects">Refresh</button>
+      </form>
+      <div id="create-status" class="empty-state"></div>
+    </section>
+  </header>
+
+  <main class="projects-card">
+    <h2 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">Existing Projects</h2>
+    <div class="selection-row">
+      <span id="selection-status">Select projects to enable bulk actions.</span>
+      <button id="delete-selected" type="button" disabled>Delete Selected</button>
+    </div>
+    <div id="projects-grid" class="projects-grid"></div>
+    <div id="projects-empty" class="empty-state" style="display:none;">No projects yet. Create one above and upload your files.</div>
+  </main>
+
+  <div id="upload-loader" class="upload-loader hidden">Uploading…</div>
+
+  <script>
+    function redirectToLogin() {
+      const current = window.location.pathname + window.location.search;
+      const next = encodeURIComponent(current);
+      window.location.replace(`/login.html?next=${next}`);
+    }
+
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error('unauthorized');
+      }
+      return response;
+    };
+
+    async function handleLogout(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Logout failed', error);
+      } finally {
+        window.location.replace('/login.html');
+      }
+    }
+
+    const projectsGrid = document.getElementById('projects-grid');
+    const projectsEmpty = document.getElementById('projects-empty');
+    const createForm = document.getElementById('create-form');
+    const projectNameInput = document.getElementById('project-name');
+    const createStatus = document.getElementById('create-status');
+    const refreshBtn = document.getElementById('refresh-projects');
+    const uploadLoader = document.getElementById('upload-loader');
+    const deleteSelectedBtn = document.getElementById('delete-selected');
+    const selectionStatus = document.getElementById('selection-status');
+    const logoutLink = document.getElementById('logout-link');
+    const selectedProjects = new Set();
+
+    if (logoutLink) {
+      logoutLink.addEventListener('click', handleLogout);
+    }
+
+    function formatFiles(files) {
+      return `Notes: ${files.notes || '—'}\nTranscript: ${files.transcript_json || files.srt || '—'}\nVideo: ${files.video || '—'}\nAudio: ${files.audio || '—'}\nProxy: ${files.proxy || '—'}`;
+    }
+
+    function updateSelectionUI() {
+      const count = selectedProjects.size;
+      if (selectionStatus) {
+        selectionStatus.textContent = count
+          ? `${count} project${count === 1 ? '' : 's'} selected`
+          : 'Select projects to enable bulk actions.';
+      }
+      if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = count === 0;
+      }
+    }
+
+    function toggleSelection(name, isSelected, card) {
+      if (!name) return;
+      if (isSelected) {
+        selectedProjects.add(name);
+        card.classList.add('selected');
+      } else {
+        selectedProjects.delete(name);
+        card.classList.remove('selected');
+      }
+      updateSelectionUI();
+    }
+
+    async function listProjects() {
+      try {
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        renderProjects(data.projects || []);
+      } catch (error) {
+        createStatus.textContent = 'Failed to load projects: ' + error.message;
+        renderProjects([]);
+      }
+    }
+
+    function renderProjects(projects) {
+      projectsGrid.textContent = '';
+      projectsEmpty.style.display = projects.length ? 'none' : 'block';
+
+      const present = new Set(projects.map((project) => project.name));
+      for (const name of Array.from(selectedProjects)) {
+        if (!present.has(name)) {
+          selectedProjects.delete(name);
+        }
+      }
+
+      projects.forEach((project) => {
+        const card = document.createElement('div');
+        card.className = 'project-card';
+        const isSelected = selectedProjects.has(project.name);
+        if (isSelected) {
+          card.classList.add('selected');
+        }
+
+        const header = document.createElement('div');
+        header.className = 'project-header';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'project-name';
+        nameEl.textContent = project.name || '(unnamed)';
+        header.appendChild(nameEl);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'select-checkbox';
+        checkbox.checked = isSelected;
+        checkbox.title = 'Select project';
+        checkbox.addEventListener('change', () => {
+          toggleSelection(project.name, checkbox.checked, card);
+        });
+        header.appendChild(checkbox);
+        card.appendChild(header);
+
+        const path = document.createElement('div');
+        path.className = 'project-path';
+        path.textContent = project.path || '';
+        card.appendChild(path);
+
+        const filesInfo = project.files || {};
+        const hasVideo = Boolean(filesInfo.video);
+        const files = document.createElement('div');
+        files.className = 'project-files';
+        const summary = formatFiles(filesInfo).replace(/\n/g, '<br>');
+        if (!hasVideo) {
+            card.classList.add('missing-video');
+            files.innerHTML = `<strong style="color:#f87171;">Video file missing.</strong><br>${summary}`;
+        } else {
+            files.innerHTML = summary;
+        }
+        card.appendChild(files);
+
+        const uploadRow = document.createElement('div');
+        uploadRow.className = 'upload-row';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.id = `upload-${project.name}`;
+        fileInput.addEventListener('change', async (event) => {
+          if (event.target.files.length === 0) return;
+          const files = Array.from(event.target.files);
+          await uploadFiles(project.name, files);
+          event.target.value = '';
+        });
+
+        const label = document.createElement('label');
+        label.className = 'file-input-label';
+        label.textContent = 'Upload Files';
+        label.setAttribute('for', fileInput.id);
+
+        uploadRow.appendChild(fileInput);
+        uploadRow.appendChild(label);
+        card.appendChild(uploadRow);
+
+        const controls = document.createElement('div');
+        controls.className = 'controls-row';
+        const openPlayerBtn = document.createElement('button');
+        openPlayerBtn.type = 'button';
+        openPlayerBtn.textContent = 'Open in Editor';
+        openPlayerBtn.addEventListener('click', () => openProject(project.path, 'editor.html'));
+
+        const openNotesBtn = document.createElement('button');
+        openNotesBtn.type = 'button';
+        openNotesBtn.textContent = 'Open in Notes';
+        openNotesBtn.addEventListener('click', () => openProject(project.path, 'notes_editor.html'));
+
+        const rescanBtn = document.createElement('button');
+        rescanBtn.type = 'button';
+        rescanBtn.textContent = 'Rescan';
+        rescanBtn.addEventListener('click', () => listProjects());
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.classList.add('delete');
+        deleteBtn.addEventListener('click', () => deleteProject(project.name));
+
+        controls.appendChild(openPlayerBtn);
+        controls.appendChild(openNotesBtn);
+        controls.appendChild(rescanBtn);
+        controls.appendChild(deleteBtn);
+        card.appendChild(controls);
+
+        projectsGrid.appendChild(card);
+      });
+      updateSelectionUI();
+    }
+
+    function setUploadLoader(visible, message = 'Uploading…') {
+      if (!uploadLoader) return;
+      uploadLoader.textContent = message;
+      uploadLoader.classList.toggle('hidden', !visible);
+    }
+
+    async function uploadFiles(projectName, files) {
+      try {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('file', file, file.name));
+        if (!files.length) return;
+        const query = new URLSearchParams({ project: projectName }).toString();
+        setUploadLoader(true, 'Uploading…');
+        const response = await fetch(`/api/projects/upload?${query}`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        await listProjects();
+        createStatus.textContent = `Uploaded ${data.saved.length} file(s).`;
+      } catch (error) {
+        console.error(error);
+        alert('Upload failed: ' + error.message);
+      } finally {
+        setUploadLoader(false);
+      }
+    }
+
+    async function deleteProject(
+      name,
+      { skipConfirm = false, refresh = true, suppressLoader = false, silent = false } = {},
+    ) {
+      if (!name) return false;
+      if (!skipConfirm) {
+        const confirmDelete = confirm(`Delete project "${name}" and all its files?`);
+        if (!confirmDelete) {
+          return false;
+        }
+      }
+      let showingLoader = false;
+      try {
+        if (!suppressLoader) {
+          setUploadLoader(true, 'Deleting…');
+          showingLoader = true;
+        }
+        const response = await fetch('/api/projects/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        selectedProjects.delete(name);
+        if (refresh) {
+          createStatus.textContent = data.status === 'deleted' ? 'Project deleted.' : 'Project not found.';
+          await listProjects();
+        }
+        return data.status === 'deleted';
+      } catch (error) {
+        console.error(error);
+        if (!silent) {
+          alert('Failed to delete project: ' + error.message);
+        }
+        if (refresh) {
+          createStatus.textContent = 'Failed to delete project: ' + error.message;
+        }
+        return false;
+      } finally {
+        if (showingLoader) {
+          setUploadLoader(false);
+        }
+        updateSelectionUI();
+      }
+    }
+
+    async function deleteSelectedProjects() {
+      if (!selectedProjects.size) return;
+      const names = Array.from(selectedProjects);
+      const confirmDelete = confirm(
+        `Delete ${names.length} selected project${names.length === 1 ? '' : 's'} and all contained files?`,
+      );
+      if (!confirmDelete) return;
+      setUploadLoader(true, 'Deleting…');
+      try {
+        const failures = [];
+        for (const name of names) {
+          const ok = await deleteProject(name, {
+            skipConfirm: true,
+            refresh: false,
+            suppressLoader: true,
+            silent: true,
+          });
+          if (!ok) {
+            failures.push(name);
+          }
+        }
+        selectedProjects.clear();
+        updateSelectionUI();
+        await listProjects();
+        if (failures.length) {
+          alert(`Failed to delete: ${failures.join(', ')}`);
+        } else {
+          createStatus.textContent = `${names.length} project${names.length === 1 ? '' : 's'} deleted.`;
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Failed to delete selected projects: ' + error.message);
+      } finally {
+        setUploadLoader(false);
+      }
+    }
+
+    async function openProject(path, destination) {
+      if (!path) {
+        alert('Project has no files yet. Upload assets first.');
+        return;
+      }
+      try {
+        setUploadLoader(true, 'Loading project…');
+        const response = await fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        if (!data.files || !data.files.video) {
+          alert('This project has no video yet. Upload a video file before opening it.');
+          return;
+        }
+        try {
+          window.localStorage.setItem('podfreeWorkspacePath', path);
+        } catch (error) {
+          console.warn('Unable to persist workspace path', error);
+        }
+        const targetUrl = new URL(destination || 'editor.html', window.location.href);
+        targetUrl.searchParams.set('workspace', path);
+        window.location.href = targetUrl.toString();
+      } catch (error) {
+        alert('Unable to open project: ' + error.message);
+      } finally {
+        setUploadLoader(false);
+      }
+    }
+
+    createForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const name = projectNameInput.value.trim();
+      if (!name) return;
+      createStatus.textContent = 'Creating project…';
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        projectNameInput.value = '';
+        createStatus.textContent = 'Project created. Upload your files below.';
+        await listProjects();
+      } catch (error) {
+        createStatus.textContent = 'Create failed: ' + error.message;
+      }
+    });
+
+    refreshBtn.addEventListener('click', () => listProjects());
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.addEventListener('click', deleteSelectedProjects);
+    }
+    updateSelectionUI();
+    listProjects();
+  </script>
+</body>
+</html>

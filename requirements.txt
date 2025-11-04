@@ -1,0 +1,4 @@
+pillow
+requests
+markdown
+deepgram-sdk
