@@ -18,15 +18,34 @@ from pathlib import Path
 from typing import Optional
 
 SUPPORTED_VIDEO_EXTS = (".mp4", ".mov", ".mkv", ".webm", ".avi")
+PROXY_KEYWORDS = ("proxy", "ultralow", "ultra", "light", "lowres", "low-res", "preview", "low")
+
+
+def is_proxy_video(path: Path) -> bool:
+    stem = path.stem.lower()
+    return any(keyword in stem for keyword in PROXY_KEYWORDS)
 
 
 def find_video_file() -> Path:
-    candidates = [p for p in Path.cwd().iterdir() if p.suffix.lower() in SUPPORTED_VIDEO_EXTS and p.is_file()]
+    candidates = [
+        p for p in Path.cwd().iterdir() if p.suffix.lower() in SUPPORTED_VIDEO_EXTS and p.is_file()
+    ]
     if not candidates:
         raise FileNotFoundError("No video files (.mp4/.mov/.mkv/.webm/.avi) found in current directory.")
-    if len(candidates) > 1:
-        raise ValueError("Multiple video files found. Specify one explicitly.")
-    return candidates[0]
+
+    primary_candidates = [p for p in candidates if not is_proxy_video(p)]
+    target_pool = primary_candidates or candidates
+
+    if len(target_pool) == 1:
+        return target_pool[0]
+
+    # Prefer the largest file when multiple plausible originals exist.
+    try:
+        return max(target_pool, key=lambda path: path.stat().st_size)
+    except OSError:
+        raise ValueError(
+            "Multiple video files found and unable to determine the original. Specify the input video explicitly."
+        ) from None
 
 
 def build_output_path(input_path: Path, explicit: Optional[str]) -> Path:

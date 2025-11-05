@@ -1,21 +1,23 @@
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import webbrowser
 import urllib.parse
+import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from typing import Optional
 
 import requests
 
 
-def load_env_file(filepath=".env"):
+def load_env_file(filepath: Path) -> None:
     """Populate os.environ with values from a .env file if present."""
-    env_path = Path(filepath)
+    env_path = filepath
     if not env_path.exists():
         return
-    for raw_line in env_path.read_text().splitlines():
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -29,20 +31,15 @@ def load_env_file(filepath=".env"):
         os.environ.setdefault(key, value)
 
 
-load_env_file()
+SCRIPT_DIR = Path(__file__).resolve().parent
+load_env_file(SCRIPT_DIR / ".env")
+load_env_file(SCRIPT_DIR.parent / ".env")
+load_env_file(Path.cwd() / ".env")
 
 # ----------------------------
 # Config — set via environment
 # ----------------------------
-CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
-CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI")  # must be registered in your app
-ORG_VANITY = "democracy-innovators"                # from your URL
-LINKEDIN_VERSION = "202510"                        # YYYYMM; keep current per docs
-
-if not all([CLIENT_ID, CLIENT_SECRET, REDIRECT_URI]):
-    print("Missing env vars. Set LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI.")
-    sys.exit(1)
+DEFAULT_VERSION = "202510"
 
 # ----------------------------
 # OAuth 2.0 (Authorization Code)
@@ -81,7 +78,7 @@ class OAuthHandler(BaseHTTPRequestHandler):
         return  # silence noisy BaseHTTPRequestHandler logging
 
 
-def get_access_token():
+def get_access_token(client_id: str, client_secret: str, redirect_uri: str) -> str:
     """Exchange the authorization code for an access token."""
     url = urllib.parse.urlparse(REDIRECT_URI)
     host = url.hostname or "localhost"
@@ -90,8 +87,8 @@ def get_access_token():
 
     params = {
         "response_type": "code",
-        "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
         "scope": SCOPE,
         "state": "xyz",  # CSRF token; static for demo
     }
@@ -109,9 +106,9 @@ def get_access_token():
     data = {
         "grant_type": "authorization_code",
         "code": OAuthHandler.code,
-        "redirect_uri": REDIRECT_URI,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "redirect_uri": redirect_uri,
+        "client_id": client_id,
+        "client_secret": client_secret,
     }
     resp = requests.post(TOKEN_URL, data=data, timeout=30)
     if resp.status_code != 200:
@@ -123,20 +120,20 @@ def get_access_token():
 REST_BASE = "https://api.linkedin.com/rest"
 
 
-def headers(token):
+def headers(token: str, version: str) -> dict:
     return {
         "Authorization": f"Bearer {token}",
-        "Linkedin-Version": LINKEDIN_VERSION,
+        "Linkedin-Version": version,
         "X-Restli-Protocol-Version": "2.0.0",
         "Content-Type": "application/json",
     }
 
 
-def get_org_urn(token, vanity_name):
+def get_org_urn(token: str, vanity_name: str, version: str) -> str:
     """Resolve the organization URN from its vanity name."""
     response = requests.get(
         f"{REST_BASE}/organizations",
-        headers=headers(token),
+        headers=headers(token, version),
         params={"q": "vanityName", "vanityName": vanity_name},
         timeout=30,
     )
@@ -149,7 +146,7 @@ def get_org_urn(token, vanity_name):
     return f"urn:li:organization:{org_id}"
 
 
-def create_text_post(token, author_urn, text):
+def create_text_post(token: str, author_urn: str, text: str, version: str) -> str:
     """Create a simple text post for the organization."""
     payload = {
         "author": author_urn,
@@ -165,7 +162,7 @@ def create_text_post(token, author_urn, text):
     }
     response = requests.post(
         f"{REST_BASE}/posts",
-        headers=headers(token),
+        headers=headers(token, version),
         json=payload,
         timeout=30,
     )
@@ -174,17 +171,89 @@ def create_text_post(token, author_urn, text):
     return response.headers.get("x-restli-id")
 
 
-def main():
+def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
+    if explicit:
+        path = Path(explicit).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"Notes file not found: {path}")
+        return path
+
+    primary = Path.cwd() / "Notes.md"
+    if primary.is_file():
+        return primary
+
+    candidates = sorted(Path.cwd().glob("Notes*.md"))
+    if candidates:
+        return candidates[0]
+    return None
+
+
+def extract_linkedin_section(notes_path: Path) -> str:
+    content = notes_path.read_text(encoding="utf-8")
+    marker = "## LinkedIn"
+    if marker not in content:
+        return ""
+    prefix, suffix = content.split(marker, 1)
+    body = suffix.split("\n##", 1)[0]
+    return body.strip()
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Publish a LinkedIn post using the content from Notes.md.")
+    parser.add_argument("--notes", help="Path to Notes.md (defaults to project Notes.md).")
+    parser.add_argument("--text", help="Override LinkedIn copy instead of reading Notes.md.")
+    parser.add_argument("--dry-run", action="store_true", help="Print the post without publishing to LinkedIn.")
+    parser.add_argument("--vanity", help="LinkedIn organization vanity name (overrides env).")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    text = args.text
+    notes_path: Optional[Path] = None
+    if not text:
+        notes_path = find_notes_file(args.notes)
+        if not notes_path:
+            raise FileNotFoundError("Notes.md not found. Provide --text or create Notes.md.")
+        text = extract_linkedin_section(notes_path)
+        if not text:
+            raise ValueError("LinkedIn section in Notes.md is empty. Run prepare_linkedin_post.py first or fill it manually.")
+
+    print("LinkedIn copy to publish:\n")
+    print(text.strip())
+    print("\n")
+
+    if args.dry_run:
+        print("Dry run enabled; skipping LinkedIn API call.")
+        return
+
+    client_id = os.getenv("LINKEDIN_CLIENT_ID")
+    client_secret = os.getenv("LINKEDIN_CLIENT_SECRET")
+    redirect_uri = os.getenv("LINKEDIN_REDIRECT_URI")
+    vanity = args.vanity or os.getenv("LINKEDIN_ORG_VANITY") or "democracy-innovators"
+    version = os.getenv("LINKEDIN_VERSION", DEFAULT_VERSION)
+
+    missing = [name for name, value in {
+        "LINKEDIN_CLIENT_ID": client_id,
+        "LINKEDIN_CLIENT_SECRET": client_secret,
+        "LINKEDIN_REDIRECT_URI": redirect_uri,
+    }.items() if not value]
+    if missing:
+        raise EnvironmentError(
+            "Missing LinkedIn configuration: " + ", ".join(missing) + ". Set them in your environment or .env file."
+        )
+
     print("1) Getting access token...")
-    token = get_access_token()
+    token = get_access_token(client_id, client_secret, redirect_uri)
     print("   ✅ token acquired")
 
     print("2) Resolving organization URN from vanity name...")
-    org_urn = get_org_urn(token, ORG_VANITY)
+    org_urn = get_org_urn(token, vanity, version)
     print(f"   ✅ {org_urn}")
 
-    print('3) Creating "Hello world" post...')
-    post_id = create_text_post(token, org_urn, "Hello world")
+    print("3) Publishing LinkedIn post...")
+    post_id = create_text_post(token, org_urn, text, version)
     print(f"   ✅ Post created: {post_id} (check your Page)")
 
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import cgi
+import io
 import json
 import logging
 import os
@@ -20,11 +21,12 @@ import subprocess
 import threading
 import time
 import uuid
+import zipfile
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 try:
@@ -265,6 +267,7 @@ def _empty_summary(path: Optional[Path] = None) -> Dict[str, Any]:
     return {
         "path": str(path) if path else None,
         "valid": False,
+        "project_name": None,
         "files": {
             "notes": None,
             "srt": None,
@@ -272,6 +275,7 @@ def _empty_summary(path: Optional[Path] = None) -> Dict[str, Any]:
             "audio": None,
             "proxy": None,
             "transcript_json": None,
+            "chapters": None,
         },
         "options": {
             "notes": [],
@@ -279,6 +283,7 @@ def _empty_summary(path: Optional[Path] = None) -> Dict[str, Any]:
             "video": [],
             "audio": [],
             "transcript_json": [],
+            "chapters": [],
         },
         "timestamp": time.time(),
     }
@@ -349,6 +354,13 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
     json_transcripts.sort()
     json_transcript_files = [item[1] for item in json_transcripts]
 
+    chapter_files: list[str] = []
+    castopod_dir = ws / "Castopod"
+    if castopod_dir.is_dir():
+        for candidate in sorted(castopod_dir.glob("*.json")):
+            if candidate.is_file():
+                chapter_files.append(candidate.relative_to(ws).as_posix())
+
     def is_proxy(name: str) -> bool:
         lowered = name.lower()
         return any(keyword in lowered for keyword in ("proxy", "light", "ultra", "low"))
@@ -360,9 +372,18 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
     proxy_name = next((name for name in mp4_files if is_proxy(name) and name != video_name), None)
 
     has_video = video_name is not None
+    project_name: Optional[str] = None
+    try:
+        rel_project = ws.relative_to(PROJECTS_DIR)
+        if rel_project.parts:
+            project_name = rel_project.parts[0]
+    except ValueError:
+        project_name = None
+
     summary = {
         "path": str(ws),
         "valid": has_video,
+        "project_name": project_name,
         "files": {
             "notes": notes_name,
             "srt": srt_files[0] if srt_files else None,
@@ -370,6 +391,7 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
             "audio": mp3_files[0] if mp3_files else None,
             "proxy": proxy_name,
             "transcript_json": json_transcript_files[0] if json_transcript_files else None,
+            "chapters": chapter_files[0] if chapter_files else None,
         },
         "options": {
             "notes": [p.name for p in md_candidates],
@@ -377,6 +399,7 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
             "video": mp4_files,
             "audio": mp3_files,
             "transcript_json": json_transcript_files,
+            "chapters": chapter_files,
         },
         "timestamp": time.time(),
         "missing": {
@@ -384,6 +407,7 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
             "srt": not srt_files,
             "notes": not md_candidates,
             "audio": not mp3_files,
+            "chapters": not chapter_files,
         },
     }
     return summary
@@ -426,9 +450,25 @@ SCRIPT_LABELS = {
     "deepgram_transcribe_debates.py": "Transcribe with Deepgram",
     "extract_audio_from_video.py": "Extract .mp3 File",
     "generate_covers.py": "Generate Covers",
+    "generate_chapters.py": "Generate Chapters",
+    "export_castopod_chapters.py": "Export Castopod Chapters",
+    "prepare_linkedin_post.py": "Draft LinkedIn Post",
     "create_ghost_post.py": "Post to Ghost CMS",
     "castopod_post.py": "Castopod Draft",
     "post_to_linkedin.py": "Post to LinkedIn",
+    "identify_participants.py": "Identify Participants",
+}
+
+SCRIPT_SORT_PRIORITY = {
+    "extract_audio_from_video.py": 0,
+    "deepgram_transcribe_debates.py": 1,
+    "generate_covers.py": 2,
+    "generate_chapters.py": 3,
+    "export_castopod_chapters.py": 4,
+    "prepare_linkedin_post.py": 5,
+    "identify_participants.py": 6,
+    "create_ghost_post.py": 7,
+    "post_to_linkedin.py": 8,
 }
 
 
@@ -450,6 +490,19 @@ def list_scripts_with_status() -> list[Dict[str, Any]]:
     summary = scan_workspace()
     files = summary.get("files") if summary else {}
     options = summary.get("options") if summary else {}
+    workspace_path = Path(summary["path"]) if summary and summary.get("path") else None
+
+    def existing_relatives(candidates: Iterable[str]) -> list[str]:
+        if not workspace_path:
+            return []
+        seen: list[str] = []
+        for rel in candidates:
+            if not rel:
+                continue
+            candidate = workspace_path / rel
+            if candidate.is_file() and rel not in seen:
+                seen.append(rel)
+        return seen
     scripts: list[Dict[str, Any]] = []
     for script in sorted(SCRIPTS_DIR.glob("*.py")):
         name = script.name
@@ -459,27 +512,43 @@ def list_scripts_with_status() -> list[Dict[str, Any]]:
 
         if summary:
             if name == "deepgram_transcribe_debates.py":
-                outputs = list(options.get("transcript_json", []))
+                candidates = list(options.get("transcript_json", []))
                 transcript_file = files.get("transcript_json")
-                if transcript_file and transcript_file not in outputs:
-                    outputs.insert(0, transcript_file)
+                if transcript_file and transcript_file not in candidates:
+                    candidates.insert(0, transcript_file)
+                outputs = existing_relatives(candidates)
                 status = "ready" if outputs else "missing"
             elif name == "extract_audio_from_video.py":
-                outputs = list(options.get("audio", []))
+                candidates = list(options.get("audio", []))
                 audio_file = files.get("audio")
-                if audio_file and audio_file not in outputs:
-                    outputs.insert(0, audio_file)
+                if audio_file and audio_file not in candidates:
+                    candidates.insert(0, audio_file)
+                outputs = existing_relatives(candidates)
                 status = "ready" if outputs else "missing"
             elif name == "generate_covers.py":
-                cover_files: list[str] = []
-                workspace_path = summary.get("path")
-                if workspace_path:
-                    ws = Path(workspace_path)
-                    for cover_name in ("youtube-cover.jpg", "podcast-cover.jpg"):
-                        if (ws / cover_name).is_file():
-                            cover_files.append(cover_name)
-                outputs = cover_files
-                status = "ready" if cover_files else "missing"
+                outputs = existing_relatives(["youtube-cover.jpg", "podcast-cover.jpg"])
+                status = "ready" if outputs else "missing"
+            elif name == "generate_chapters.py":
+                candidates = list(options.get("transcript_json", []))
+                transcript_file = files.get("transcript_json")
+                if transcript_file and transcript_file not in candidates:
+                    candidates.insert(0, transcript_file)
+                outputs = existing_relatives(candidates)
+                status = "ready" if transcript_file and outputs else "missing"
+            elif name == "export_castopod_chapters.py":
+                candidates = list(options.get("chapters", []))
+                outputs = existing_relatives(candidates)
+                status = "ready" if files.get("notes") and outputs else "missing"
+            elif name == "prepare_linkedin_post.py":
+                notes_exists = bool(files.get("notes"))
+                status = "ready" if notes_exists else "missing"
+            elif name == "post_to_linkedin.py":
+                notes_exists = bool(files.get("notes"))
+                status = "ready" if notes_exists else "missing"
+            elif name == "identify_participants.py":
+                transcript_exists = bool(files.get("transcript_json"))
+                notes_exists = bool(files.get("notes"))
+                status = "ready" if transcript_exists and notes_exists else "missing"
             elif name == "create_ghost_post.py":
                 status = "unknown"
 
@@ -498,7 +567,22 @@ def list_scripts_with_status() -> list[Dict[str, Any]]:
                 "outputs": outputs,
             }
         )
+    scripts.sort(
+        key=lambda item: (
+            SCRIPT_SORT_PRIORITY.get(item["name"], len(SCRIPT_SORT_PRIORITY)),
+            item["label"],
+        )
+    )
     return scripts
+
+
+def resolve_workspace_path(relative_path: str) -> Path:
+    if WORKSPACE_DIR is None:
+        raise ValueError("Workspace not set")
+    rel = Path(relative_path)
+    candidate = (WORKSPACE_DIR / rel).resolve()
+    candidate.relative_to(WORKSPACE_DIR)
+    return candidate
 
 
 def workspace_path_from_name(name: str) -> Path:
@@ -653,6 +737,7 @@ def run_script_job(job_id: str, script: Path, workspace: Path) -> None:
 
 class PodfreeRequestHandler(SimpleHTTPRequestHandler):
     server_version = "Podfree/1.0"
+    protocol_version = "HTTP/1.1"
     current_session: Optional[Dict[str, Any]] = None
 
     def translate_path(self, path: str) -> str:
@@ -797,6 +882,62 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             self._handle_unauthorized(path)
             return
 
+        if path == "//api/workspace/files":
+            path = "/api/workspace/files"
+
+        if path == "/api/workspace/files":
+            if WORKSPACE_DIR is None or not WORKSPACE_DIR.is_dir():
+                self._send_json({"error": "workspace not set"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            params = parse_qs(parsed.query)
+            directory = params.get("dir", ["."])[0].strip() or "."
+            try:
+                target_dir = resolve_workspace_path(directory)
+            except ValueError:
+                self._send_json({"error": "invalid directory"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            if not target_dir.is_dir():
+                self._send_json({"error": "path is not a directory"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            entries: list[Dict[str, Any]] = []
+            for candidate in sorted(target_dir.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+                try:
+                    stat_info = candidate.stat()
+                except OSError:
+                    continue
+                entries.append(
+                    {
+                        "name": candidate.name,
+                        "path": candidate.relative_to(WORKSPACE_DIR).as_posix(),
+                        "is_dir": candidate.is_dir(),
+                        "size": stat_info.st_size if candidate.is_file() else None,
+                        "modified": stat_info.st_mtime,
+                    }
+                )
+
+            rel_path = target_dir.relative_to(WORKSPACE_DIR).as_posix()
+            current_dir = "." if rel_path == "." else rel_path
+            breadcrumbs: list[Dict[str, str]] = [{"label": "Workspace", "path": "."}]
+            if current_dir != ".":
+                accumulated: list[str] = []
+                for part in Path(current_dir).parts:
+                    accumulated.append(part)
+                    breadcrumbs.append({"label": part, "path": "/".join(accumulated)})
+
+            summary = scan_workspace()
+            project_name = summary.get("project_name") if summary else None
+
+            self._send_json(
+                {
+                    "directory": current_dir,
+                    "entries": entries,
+                    "breadcrumbs": breadcrumbs,
+                    "project_name": project_name,
+                }
+            )
+            return
+
         if path == "/api/workspace":
             refresh = parse_qs(parsed.query).get("refresh", ["0"])[0].lower() in {"1", "true", "yes"}
             summary = scan_workspace(refresh=refresh)
@@ -905,6 +1046,89 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
 
         if not authenticated and not self._is_public_path(path):
             self._handle_unauthorized(path)
+            return
+
+        if path == "/api/workspace/delete-files":
+            if WORKSPACE_DIR is None or not WORKSPACE_DIR.is_dir():
+                self._send_json({"error": "workspace not set"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            data = self._read_json_body()
+            paths = data.get("paths")
+            if not isinstance(paths, list) or not paths:
+                self._send_json({"error": "paths array required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            deleted: list[str] = []
+            for raw in paths:
+                rel = str(raw).strip()
+                if not rel or rel == ".":
+                    continue
+                try:
+                    candidate = resolve_workspace_path(rel)
+                except ValueError:
+                    self._send_json({"error": f"invalid path: {rel}"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+                try:
+                    if candidate.is_dir():
+                        shutil.rmtree(candidate)
+                    elif candidate.is_file():
+                        candidate.unlink()
+                    else:
+                        continue
+                    deleted.append(rel)
+                except OSError as exc:
+                    logger.error("Failed to delete %s: %s", candidate, exc)
+                    self._send_json({"error": f"failed to delete {rel}: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                    return
+            refresh_workspace_cache()
+            self._send_json({"status": "deleted", "paths": deleted})
+            return
+
+        if path == "/api/workspace/download-zip":
+            if WORKSPACE_DIR is None or not WORKSPACE_DIR.is_dir():
+                self._send_json({"error": "workspace not set"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            data = self._read_json_body()
+            paths = data.get("paths")
+            if not isinstance(paths, list) or not paths:
+                self._send_json({"error": "paths array required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            buffer = io.BytesIO()
+            added = 0
+            with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                for raw in paths:
+                    rel = str(raw).strip()
+                    if not rel or rel == ".":
+                        continue
+                    try:
+                        candidate = resolve_workspace_path(rel)
+                    except ValueError:
+                        self._send_json({"error": f"invalid path: {rel}"}, status=HTTPStatus.BAD_REQUEST)
+                        return
+                    if candidate.is_file():
+                        arcname = candidate.relative_to(WORKSPACE_DIR).as_posix()
+                        archive.write(candidate, arcname)
+                        added += 1
+                    elif candidate.is_dir():
+                        for root, _dirs, files in os.walk(candidate):
+                            root_path = Path(root)
+                            for name in files:
+                                file_path = root_path / name
+                                arcname = file_path.relative_to(WORKSPACE_DIR).as_posix()
+                                archive.write(file_path, arcname)
+                                added += 1
+            if added == 0:
+                self._send_json({"error": "no files selected"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            buffer.seek(0)
+            payload = buffer.getvalue()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", 'attachment; filename="workspace-files.zip"')
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
             return
 
         if path == "/api/workspace":
@@ -1036,6 +1260,47 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name
             self._send_json({"status": "uploaded", "saved": saved, "project": summary})
+            return
+
+        if path == "/api/projects/download":
+            params = parse_qs(parsed.query)
+            project_name = params.get("project", [None])[0]
+            if not project_name:
+                self._send_json({"error": "project parameter required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            project_dir = (PROJECTS_DIR / project_name).resolve()
+            try:
+                project_dir.relative_to(PROJECTS_DIR)
+            except ValueError:
+                self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            if not project_dir.is_dir():
+                self._send_json({"error": "project not found"}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            buffer = io.BytesIO()
+            try:
+                with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                    for root, _dirs, files in os.walk(project_dir):
+                        root_path = Path(root)
+                        for filename in files:
+                            file_path = root_path / filename
+                            rel_path = file_path.relative_to(project_dir)
+                            archive.write(file_path, rel_path.as_posix())
+                buffer.seek(0)
+            except OSError as exc:
+                logger.error("Failed to bundle project %s: %s", project_name, exc)
+                self._send_json({"error": f"unable to create archive: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+
+            payload = buffer.getvalue()
+            archive_name = f"{project_dir.name}.zip"
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", f'attachment; filename="{archive_name}"')
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
             return
 
         if path == "/api/projects/delete":

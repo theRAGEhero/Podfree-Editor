@@ -44,10 +44,10 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 load_env_file(PROJECT_ROOT / ".env", SCRIPT_DIR / ".env")
 
 GHOST_URL = os.getenv("GHOST_URL")
-GHOST_GHOST_ADMIN_API_KEY = os.getenv("GHOST_GHOST_ADMIN_API_KEY")
+GHOST_ADMIN_API_KEY = os.getenv("GHOST_ADMIN_API_KEY") or os.getenv("GHOST_GHOST_ADMIN_API_KEY")
 
-if not GHOST_URL or not GHOST_GHOST_ADMIN_API_KEY:
-    print("Missing GHOST_URL or GHOST_GHOST_ADMIN_API_KEY. Configure them in your .env file and retry.")
+if not GHOST_URL or not GHOST_ADMIN_API_KEY:
+    print("Missing GHOST_URL or GHOST_ADMIN_API_KEY. Configure them in your .env file and retry.")
     sys.exit(1)
 
 SUPPORTED_IMAGE_MIME_TYPES = {

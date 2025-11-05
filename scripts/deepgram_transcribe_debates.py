@@ -7,9 +7,10 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 try:  # New Deepgram SDK v3+
-    from deepgram import DeepgramClient, FileSource, PrerecordedOptions
+    from deepgram import DeepgramClient
 
     HAS_SDK_V3 = True
 except ImportError:  # Legacy SDK v2
@@ -221,6 +222,117 @@ def create_deliberation_ontology_json(response_dict, audio_filename):
     
     return deliberation_json
 
+
+def locate_notes_markdown(workdir: Path) -> Optional[Path]:
+    """Return the Notes markdown file in the current workspace, if any."""
+    primary = workdir / "Notes.md"
+    if primary.is_file():
+        return primary
+
+    candidates = sorted(workdir.glob("Notes*.md"))
+    if candidates:
+        return candidates[0]
+
+    fallback_candidates = sorted(
+        p for p in workdir.glob("*.md") if p.name.lower() not in {"readme.md", "license.md"}
+    )
+    return fallback_candidates[0] if fallback_candidates else None
+
+
+def _format_timestamp_label(seconds: float) -> str:
+    total_seconds = max(0, int(seconds))
+    minutes, secs = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def _friendly_speaker_label(identifier: str) -> str:
+    if identifier.startswith("speaker_"):
+        suffix = identifier.split("_", 1)[-1]
+        return f"Speaker {suffix}"
+    return identifier
+
+
+def build_blog_post_section(
+    deliberation_data: dict,
+    audio_filename: str,
+    structured_json_path: str,
+) -> str:
+    metadata = deliberation_data.get("deliberation_process", {}).get("transcription_metadata", {})
+    stats = deliberation_data.get("statistics", {})
+    contributions = deliberation_data.get("contributions", [])
+    processed_at = metadata.get("processed_at", datetime.now(timezone.utc).isoformat())
+
+    lines = [
+        "### Automatic Transcription: it could contain errors.",
+        "",
+        f"- Processed at: {processed_at}",
+        f"- Audio source: `{os.path.basename(audio_filename)}`",
+        f"- Structured transcript: `{structured_json_path}`",
+        "- Summary:",
+        f"  - Speakers: {stats.get('total_speakers', 0)}",
+        f"  - Contributions: {stats.get('total_contributions', 0)}",
+        f"  - Words: {stats.get('total_words', 0)}",
+        "",
+    ]
+
+    for contribution in contributions:
+        text = (contribution.get("text") or "").strip()
+        if not text:
+            continue
+        timestamp = _format_timestamp_label(contribution.get("start_time_seconds", 0))
+        speaker = _friendly_speaker_label(contribution.get("madeBy", "speaker"))
+        lines.append(f"{speaker} ({timestamp})")
+        lines.append(text)
+        lines.append("")
+
+    if lines and lines[-1]:
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
+def update_markdown_section(markdown_path: Path, heading: str, body: str) -> None:
+    """Replace or append a markdown section with the supplied heading."""
+    original = markdown_path.read_text(encoding="utf-8")
+    heading_pattern = re.compile(rf"(?m)^{re.escape(heading)}\s*$")
+    match = heading_pattern.search(original)
+    replacement = f"{heading}\n\n{body.rstrip()}\n"
+
+    if match:
+        heading_level = heading.count("#")
+        boundary_pattern = re.compile(rf"(?m)^#{{1,{heading_level}}} ")
+        section_start = match.end()
+        boundary_match = boundary_pattern.search(original, section_start)
+        section_end = boundary_match.start() if boundary_match else len(original)
+        updated = original[: match.start()] + replacement + original[section_end:]
+    else:
+        trailing = original
+        if trailing and not trailing.endswith("\n"):
+            trailing += "\n"
+        separator = "" if not trailing or trailing.endswith("\n\n") else "\n"
+        updated = trailing + separator + replacement
+
+    if not updated.endswith("\n"):
+        updated += "\n"
+
+    markdown_path.write_text(updated, encoding="utf-8")
+
+
+def update_notes_with_transcription(deliberation_data, audio_filename: str, structured_json_path: str) -> None:
+    notes_path = locate_notes_markdown(Path.cwd())
+    if not notes_path:
+        print("Notes.md not found in this workspace; skipping notes update.")
+        return
+
+    try:
+        blog_post_body = build_blog_post_section(deliberation_data, audio_filename, structured_json_path)
+        update_markdown_section(notes_path, "## Blog Post", blog_post_body)
+        print(f"Updated {notes_path.name} with latest transcription summary.")
+    except Exception as exc:  # noqa: BLE001
+        print(f"⚠️ Unable to update {notes_path.name}: {exc}")
+
 def transcribe_single_file(input_file, api_key):
     """Transcribe a single MP3 file"""
     print(f"\n=== Processing: {input_file} ===")
@@ -249,19 +361,32 @@ def transcribe_single_file(input_file, api_key):
             with open(input_file, "rb") as file:
                 buffer_data = file.read()
 
-            payload = FileSource(buffer=buffer_data)
-            options = PrerecordedOptions(
-                model="nova-2",
-                language="en",
-                diarize=True,
-                punctuate=True,
-                paragraphs=True,
-                utterances=True,
-                smart_format=True,
-            )
             print("Sending to Deepgram (SDK v3) for transcription...")
-            response = deepgram.listen.rest.v("1").transcribe_file(payload, options)
-            response_dict = response.to_dict() if hasattr(response, "to_dict") else response
+            response = deepgram.listen.v1.media.transcribe_file(
+                buffer_data,
+                {
+                    "model": "nova-2",
+                    "language": "en",
+                    "diarize": True,
+                    "punctuate": True,
+                    "paragraphs": True,
+                    "utterances": True,
+                    "smart_format": True,
+                },
+            )
+            if hasattr(response, "model_dump"):
+                response_dict = response.model_dump()
+            elif isinstance(response, dict):
+                response_dict = response
+            elif hasattr(response, "to_dict"):
+                response_dict = response.to_dict()
+            else:
+                try:
+                    response_dict = dict(response)
+                except TypeError as error:
+                    raise TypeError(
+                        f"Deepgram SDK v3 response of type {type(response)!r} is not JSON-serializable"
+                    ) from error
         else:
             deepgram = Deepgram(api_key)  # type: ignore[call-arg]
 
@@ -294,6 +419,8 @@ def transcribe_single_file(input_file, api_key):
         # Save raw response for reference
         with open(raw_file, "w", encoding="utf-8") as f:
             json.dump(response_dict, f, indent=2, ensure_ascii=False)
+
+        update_notes_with_transcription(deliberation_data, input_file, output_file)
         
         print(f"✅ Completed successfully!")
         print(f"   Structured output: {output_file}")
@@ -319,19 +446,19 @@ def batch_transcribe_debates():
             "Missing DEEPGRAM_API_KEY. Add it to the project .env file or export it "
             "before running this script."
         )
-        return
+        return 1
 
     mp3_files = glob.glob("*.mp3")
 
     if not mp3_files:
         print("No MP3 files found in current directory.")
-        return
+        return 1
 
     if len(mp3_files) > 1:
         print("Multiple MP3 files detected. Please leave only the file you want to transcribe:")
         for file in sorted(mp3_files):
             print(f" - {file}")
-        return
+        return 1
 
     mp3_file = mp3_files[0]
     print("Found MP3 file to transcribe:")
@@ -344,15 +471,18 @@ def batch_transcribe_debates():
 
     if os.path.exists(output_file):
         print(f"Output file {output_file} already exists. Delete it if you need to re-run the transcription.")
-        return
+        return 1
 
     success = transcribe_single_file(mp3_file, api_key)
 
     print("\n" + "=" * 80)
     if success:
         print("TRANSCRIPTION COMPLETE ✅")
+        return 0
     else:
         print("TRANSCRIPTION FAILED ❌")
+        print("Troubleshooting tips: check the Deepgram API key, your network connection, and confirm the MP3 plays locally.")
+        return 1
 
 if __name__ == "__main__":
-    batch_transcribe_debates()
+    raise SystemExit(batch_transcribe_debates())

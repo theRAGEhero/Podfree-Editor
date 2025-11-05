@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Podfree Video</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #f87171;
+      --success: #34d399;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.1), transparent 58%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 1.5rem clamp(1rem, 2vw, 2.5rem) 2.5rem;
+    }
+
+    header {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-logo {
+      height: 48px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 0.35rem;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(148, 163, 184, 0.22);
+      color: var(--text);
+    }
+
+    .nav-link.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 1.2rem + 2vw, 2.6rem);
+    }
+
+    p.description {
+      color: var(--muted);
+      margin: 0;
+      font-size: 0.95rem;
+      max-width: 70ch;
+    }
+
+    main.layout {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(320px, 1.4fr) minmax(260px, 0.9fr);
+      gap: 1.5rem;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 22px;
+      padding: clamp(1.1rem, 0.9rem + 1vw, 1.6rem);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .video-panel video {
+      width: 100%;
+      border-radius: 16px;
+      background: #020617;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.4);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .media-controls,
+    .marker-controls,
+    .selection-controls {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.82rem;
+      padding: 0.45rem 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .marker-input {
+      flex: 1 1 160px;
+      min-width: 120px;
+      padding: 0.45rem 0.65rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+    }
+
+    .marker-list,
+    .segment-list {
+      max-height: 42vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .marker-item,
+    .segment-item {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 12px;
+      padding: 0.55rem 0.75rem;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.86rem;
+    }
+
+    .marker-item strong,
+    .segment-item strong {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .marker-item button,
+    .segment-item button {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.6rem;
+    }
+
+    .selection-summary {
+      font-size: 0.86rem;
+      color: var(--muted);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .workspace-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    @media (max-width: 1080px) {
+      main.layout {
+        grid-template-columns: 1fr;
+      }
+
+      .marker-list,
+      .segment-list {
+        max-height: 35vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <img src="logo.svg" alt="Podfree" class="site-logo" />
+      <nav class="top-nav">
+        <a class="nav-link" href="projects.html">Projects</a>
+        <a class="nav-link" href="editor.html">Editor</a>
+        <a class="nav-link active" href="light_editor.html">Video</a>
+        <a class="nav-link" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="#" id="logout-link">Logout</a>
+      </nav>
+    </div>
+    <h1>Video</h1>
+    <p class="description">
+      Review the lightweight proxy, scrub long recordings instantly, capture precise cuts, and
+      inspect a live spectrogram with diarized speaker colours.
+    </p>
+  </header>
+
+  <main class="layout">
+    <section class="panel video-panel">
+      <video id="light-media" controls preload="metadata">
+        <source id="light-media-source" type="video/mp4" />
+        Your browser does not support HTML video.
+      </video>
+      <div class="media-controls">
+        <button type="button" data-skip="-10">⏪ -10s</button>
+        <button type="button" data-skip="-5">◀︎ -5s</button>
+        <button type="button" data-skip="5">▶︎ +5s</button>
+        <button type="button" data-skip="10">⏩ +10s</button>
+        <button type="button" id="speed-down">0.85×</button>
+        <button type="button" id="speed-normal">1.00×</button>
+        <button type="button" id="speed-up">1.25×</button>
+        <span id="playback-rate-label" class="status">Speed 1.00×</span>
+      </div>
+      <div class="selection-controls">
+        <button type="button" id="mark-in">Mark In</button>
+        <button type="button" id="mark-out">Mark Out</button>
+        <button type="button" id="clear-selection">Clear</button>
+        <button type="button" id="copy-selection" disabled>Copy Timecodes</button>
+        <span id="selection-label" class="selection-summary">In: — · Out: — · Duration: —</span>
+      </div>
+      <div class="marker-controls">
+        <input id="marker-name" class="marker-input" type="text" placeholder="Marker description" />
+        <button type="button" id="add-marker">Add Marker</button>
+        <button type="button" id="clear-markers">Clear Markers</button>
+      </div>
+      <div id="marker-list" class="marker-list"></div>
+      <div id="light-status" class="status">No workspace selected. Choose a project first.</div>
+    </section>
+
+    <aside class="panel tools-panel">
+      <div>
+        <h2 style="margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
+          Workspace
+        </h2>
+        <div class="workspace-meta">
+          <span id="workspace-name">Workspace: —</span>
+          <span id="media-source-label">Source: —</span>
+          <button type="button" id="refresh-workspace" style="align-self:flex-start;">Refresh Workspace</button>
+        </div>
+      </div>
+      <div>
+        <h2 style="margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
+          Transcript Segments
+        </h2>
+        <div id="segment-list" class="segment-list"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const logoutLink = document.getElementById('logout-link');
+    const statusLine = document.getElementById('light-status');
+    const media = document.getElementById('light-media');
+    const mediaSource = document.getElementById('light-media-source');
+    const playbackRateLabel = document.getElementById('playback-rate-label');
+    const selectionLabel = document.getElementById('selection-label');
+    const copySelectionBtn = document.getElementById('copy-selection');
+    const markerNameInput = document.getElementById('marker-name');
+    const markerListEl = document.getElementById('marker-list');
+    const segmentListEl = document.getElementById('segment-list');
+    const workspaceNameEl = document.getElementById('workspace-name');
+    const mediaSourceLabel = document.getElementById('media-source-label');
+    const refreshWorkspaceBtn = document.getElementById('refresh-workspace');
+
+    const navigationButtons = document.querySelectorAll('.media-controls button[data-skip]');
+    const speedDownBtn = document.getElementById('speed-down');
+    const speedNormalBtn = document.getElementById('speed-normal');
+    const speedUpBtn = document.getElementById('speed-up');
+    const markInBtn = document.getElementById('mark-in');
+    const markOutBtn = document.getElementById('mark-out');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    const addMarkerBtn = document.getElementById('add-marker');
+    const clearMarkersBtn = document.getElementById('clear-markers');
+
+    let workspaceSummary = null;
+    let selection = { in: null, out: null };
+    let markers = [];
+    let transcriptSegments = [];
+    let speakerColors = new Map();
+
+    const SPEAKER_PALETTE = [
+      '#38bdf8',
+      '#a855f7',
+      '#22d3ee',
+      '#f97316',
+      '#facc15',
+      '#34d399',
+      '#fb7185',
+    ];
+
+    if (logoutLink) {
+      logoutLink.addEventListener('click', handleLogout);
+    }
+
+    navigationButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const delta = Number(button.dataset.skip) || 0;
+        media.currentTime = Math.max(0, media.currentTime + delta);
+      });
+    });
+
+    speedDownBtn.addEventListener('click', () => setPlaybackRate(0.85));
+    speedNormalBtn.addEventListener('click', () => setPlaybackRate(1.0));
+    speedUpBtn.addEventListener('click', () => setPlaybackRate(1.25));
+
+    markInBtn.addEventListener('click', () => {
+      selection.in = media.currentTime;
+      if (selection.out !== null && selection.out < selection.in) {
+        selection.out = null;
+      }
+      updateSelectionDisplay();
+    });
+
+    markOutBtn.addEventListener('click', () => {
+      selection.out = media.currentTime;
+      if (selection.in !== null && selection.out < selection.in) {
+        [selection.in, selection.out] = [selection.out, selection.in];
+      }
+      updateSelectionDisplay();
+    });
+
+    clearSelectionBtn.addEventListener('click', () => {
+      selection = { in: null, out: null };
+      updateSelectionDisplay();
+    });
+
+    copySelectionBtn.addEventListener('click', async () => {
+      if (selection.in === null || selection.out === null) return;
+      const text = `IN ${formatTime(selection.in)}\nOUT ${formatTime(selection.out)}\nDURATION ${formatDuration(selection.out - selection.in)}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        copySelectionBtn.textContent = 'Copied!';
+        copySelectionBtn.disabled = true;
+        setTimeout(() => {
+          copySelectionBtn.textContent = 'Copy Timecodes';
+          copySelectionBtn.disabled = false;
+        }, 1800);
+      } catch (error) {
+        console.error(error);
+        copySelectionBtn.textContent = 'Copy failed';
+        setTimeout(() => {
+          copySelectionBtn.textContent = 'Copy Timecodes';
+        }, 1800);
+      }
+    });
+
+    addMarkerBtn.addEventListener('click', () => {
+      const label = markerNameInput.value.trim() || `Marker ${markers.length + 1}`;
+      markers.push({ label, time: media.currentTime });
+      markerNameInput.value = '';
+      renderMarkers();
+    });
+
+    clearMarkersBtn.addEventListener('click', () => {
+      markers = [];
+      renderMarkers();
+    });
+
+    refreshWorkspaceBtn.addEventListener('click', () => loadWorkspace({ refresh: true }));
+
+    media.addEventListener('play', () => {});
+    media.addEventListener('loadedmetadata', () => {
+      updateSelectionDisplay();
+      renderMarkers();
+    });
+
+    async function handleLogout(event) {
+      if (event) event.preventDefault();
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Logout failed', error);
+      } finally {
+        window.location.replace('/login.html');
+      }
+    }
+
+    function setPlaybackRate(rate) {
+      const clamped = Math.max(0.5, Math.min(2, rate));
+      media.playbackRate = clamped;
+      playbackRateLabel.textContent = `Speed ${clamped.toFixed(2)}×`;
+    }
+
+    function updateSelectionDisplay() {
+      const labelParts = [];
+      if (selection.in !== null) {
+        labelParts.push(`In: ${formatTime(selection.in)}`);
+      } else {
+        labelParts.push('In: —');
+      }
+      if (selection.out !== null) {
+        labelParts.push(`Out: ${formatTime(selection.out)}`);
+      } else {
+        labelParts.push('Out: —');
+      }
+      if (selection.in !== null && selection.out !== null) {
+        labelParts.push(`Duration: ${formatDuration(selection.out - selection.in)}`);
+        copySelectionBtn.disabled = false;
+      } else {
+        labelParts.push('Duration: —');
+        copySelectionBtn.disabled = true;
+      }
+      selectionLabel.textContent = labelParts.join(' · ');
+    }
+
+    function renderMarkers() {
+      markerListEl.textContent = '';
+      if (!markers.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'Add markers while you review the video. They stay local to this session.';
+        empty.className = 'status';
+        markerListEl.appendChild(empty);
+        return;
+      }
+      markers
+        .slice()
+        .sort((a, b) => a.time - b.time)
+        .forEach((marker, index) => {
+          const row = document.createElement('div');
+          row.className = 'marker-item';
+          const label = document.createElement('div');
+          label.innerHTML = `<strong>${marker.label}</strong><br /><span style="color:var(--muted);">${formatTime(marker.time)}</span>`;
+          const actions = document.createElement('div');
+          const jump = document.createElement('button');
+          jump.type = 'button';
+          jump.textContent = 'Jump';
+          jump.addEventListener('click', () => {
+            media.currentTime = marker.time;
+            media.play().catch(() => {});
+          });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = 'Remove';
+          remove.addEventListener('click', () => {
+            markers.splice(index, 1);
+            renderMarkers();
+          });
+          actions.appendChild(jump);
+          actions.appendChild(remove);
+          row.appendChild(label);
+          row.appendChild(actions);
+          markerListEl.appendChild(row);
+        });
+    }
+
+    async function loadWorkspace({ refresh = false } = {}) {
+      try {
+        const response = await fetch(`/api/workspace${refresh ? '?refresh=1' : ''}`);
+        const data = await response.json();
+        workspaceSummary = data && data.path ? data : null;
+        if (!workspaceSummary || !workspaceSummary.path) {
+          statusLine.textContent = 'Select a project from the Projects page to begin.';
+          workspaceNameEl.textContent = 'Workspace: —';
+          mediaSourceLabel.textContent = 'Source: —';
+          media.removeAttribute('src');
+          media.load();
+          return;
+        }
+        workspaceNameEl.textContent = `Workspace: ${workspaceSummary.project_name || workspaceLabel(workspaceSummary.path)}`;
+        configureSource();
+        await loadTranscript();
+        statusLine.textContent = 'Workspace ready. Use the spectrogram to spot cuts quickly.';
+      } catch (error) {
+        console.error(error);
+        statusLine.textContent = `Unable to load workspace: ${error.message}`;
+      }
+    }
+
+    function workspaceLabel(path) {
+      if (!path) return '—';
+      const parts = path.split(/[/\\]+/).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : path;
+    }
+
+    function workspaceUrl(name) {
+      if (!name) return null;
+      return '/workspace/' + name.split('/').map(encodeURIComponent).join('/');
+    }
+
+    function configureSource() {
+      if (!workspaceSummary) return;
+      const { files = {} } = workspaceSummary;
+      const proxy = files.proxy;
+      const original = files.video;
+      const chosen = proxy || original;
+      if (!chosen) {
+        media.removeAttribute('src');
+        media.load();
+        mediaSourceLabel.textContent = 'Source: —';
+        statusLine.textContent = 'No video found in this workspace. Generate a proxy from the main editor.';
+        return;
+      }
+      const url = workspaceUrl(chosen);
+      mediaSource.src = url;
+      media.load();
+      mediaSourceLabel.textContent = proxy ? `Source: ${proxy} (proxy)` : `Source: ${original} (original)`;
+    }
+
+    async function loadTranscript() {
+      transcriptSegments = [];
+      segmentListEl.textContent = '';
+      if (!workspaceSummary || !workspaceSummary.files || !workspaceSummary.files.transcript_json) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No Deepgram JSON transcript detected yet.';
+        empty.className = 'status';
+        segmentListEl.appendChild(empty);
+        return;
+      }
+      const url = workspaceUrl(workspaceSummary.files.transcript_json);
+      if (!url) return;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(response.statusText);
+        }
+        const data = await response.json();
+        transcriptSegments = parseTranscriptJSON(data);
+        assignSpeakerColours(transcriptSegments);
+        renderSegments();
+      } catch (error) {
+        console.error(error);
+        const fail = document.createElement('p');
+        fail.className = 'status';
+        fail.textContent = `Transcript unavailable: ${error.message}`;
+        segmentListEl.appendChild(fail);
+      }
+    }
+
+    function assignSpeakerColours(segments) {
+      speakerColors = new Map();
+      let paletteIndex = 0;
+      segments.forEach((segment) => {
+        if (!speakerColors.has(segment.speakerLabel)) {
+          speakerColors.set(segment.speakerLabel, SPEAKER_PALETTE[paletteIndex % SPEAKER_PALETTE.length]);
+          paletteIndex += 1;
+        }
+      });
+    }
+
+    function renderSegments() {
+      segmentListEl.textContent = '';
+      if (!transcriptSegments.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'Transcript loaded but no diarized segments were found.';
+        empty.className = 'status';
+        segmentListEl.appendChild(empty);
+        return;
+      }
+      transcriptSegments.forEach((segment) => {
+        const item = document.createElement('div');
+        item.className = 'segment-item';
+        const info = document.createElement('div');
+        info.innerHTML = `<strong>${segment.speakerLabel}</strong><br /><span style="color:var(--muted);">${formatTime(segment.start)} → ${formatTime(segment.end)}</span>`;
+        const jump = document.createElement('button');
+        jump.type = 'button';
+        jump.textContent = 'Go';
+        jump.addEventListener('click', () => {
+          media.currentTime = Math.max(0, segment.start - 0.25);
+          media.play().catch(() => {});
+        });
+        item.style.borderLeft = `4px solid ${speakerColors.get(segment.speakerLabel) || '#38bdf8'}`;
+        item.appendChild(info);
+        item.appendChild(jump);
+        segmentListEl.appendChild(item);
+      });
+    }
+
+    function parseTranscriptJSON(data) {
+      if (!data || typeof data !== 'object') return [];
+      const segments = [];
+
+      const pushSegment = (start, end, speaker) => {
+        const clampedStart = Math.max(0, Number(start) || 0);
+        let clampedEnd = Number(end);
+        if (!Number.isFinite(clampedEnd) || clampedEnd <= clampedStart) {
+          clampedEnd = clampedStart + 1.2;
+        }
+        segments.push({
+          start: clampedStart,
+          end: clampedEnd,
+          speakerLabel: speaker || 'Speaker',
+        });
+      };
+
+      const contributions = Array.isArray(data.contributions) ? data.contributions : [];
+      if (contributions.length) {
+        contributions.forEach((contribution) => {
+          const start = contribution.start_time_seconds ?? contribution.start_time ?? contribution.start;
+          const end = contribution.end_time_seconds ?? contribution.end_time ?? contribution.end;
+          const speaker = contribution.madeBy || contribution.speaker || contribution.speaker_id || 'Speaker';
+          pushSegment(start, end, normalizeSpeakerLabel(speaker));
+        });
+        return segments;
+      }
+
+      const utterances = data?.results?.utterances;
+      if (Array.isArray(utterances) && utterances.length) {
+        utterances.forEach((utterance) => {
+          const start = utterance.start ?? utterance.start_time;
+          const end = utterance.end ?? utterance.end_time;
+          const speaker = utterance.speaker ?? utterance.channel ?? 'Speaker';
+          pushSegment(start, end, normalizeSpeakerLabel(speaker));
+        });
+        return segments;
+      }
+
+      const channels = data?.results?.channels;
+      if (Array.isArray(channels) && channels.length) {
+        channels.forEach((channel, idx) => {
+          const alternatives = channel?.alternatives;
+          if (!Array.isArray(alternatives)) return;
+          alternatives.forEach((alt) => {
+            const words = alt?.words;
+            if (!Array.isArray(words)) return;
+            words.forEach((word) => {
+              const start = word.start;
+              const end = word.end;
+              const speaker = word.speaker ?? `Speaker ${idx + 1}`;
+              pushSegment(start, end, normalizeSpeakerLabel(speaker));
+            });
+          });
+        });
+      }
+      return segments;
+    }
+
+    function normalizeSpeakerLabel(raw) {
+      if (raw === undefined || raw === null) return 'Speaker';
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return `Speaker ${Math.round(raw)}`;
+      }
+      const str = String(raw).trim();
+      if (!str) return 'Speaker';
+      if (/^speaker\s*\d+/i.test(str)) {
+        return str.replace(/\s+/g, ' ').replace(/\b(\d+)\b/, (match) => Number(match));
+      }
+      return str.replace(/_/g, ' ');
+    }
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return '--:--:--';
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      return [hrs, mins, secs].map((part) => String(part).padStart(2, '0')).join(':');
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return '--:--';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    (async () => {
+      await loadWorkspace();
+    })();
+  </script>
+</body>
+</html>

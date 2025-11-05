@@ -51,6 +51,61 @@
       flex-wrap: wrap;
     }
 
+    .brand-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .icon-button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.4rem 0.55rem;
+      border-radius: 10px;
+      cursor: pointer;
+      gap: 0.4rem;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.18s ease;
+    }
+
+    .icon-button:hover {
+      background: rgba(56, 189, 248, 0.26);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .icon-button svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .icon-button.small {
+      padding: 0.25rem;
+      border-radius: 8px;
+      gap: 0;
+    }
+
+    .icon-button.with-label {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .icon-button.with-label span {
+      font-size: 0.78rem;
+      color: var(--text);
+    }
+
+
     .site-logo {
       height: 48px;
     }
@@ -155,6 +210,68 @@
     }
 
     .title-status {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .participant-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .participant-form label {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .participant-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .participant-row input {
+      flex: 1 1 200px;
+      min-width: 180px;
+      padding: 0.5rem 0.7rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .participant-row input:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #participant-save {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    #participant-save:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    #participant-save:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .participant-status {
       font-size: 0.82rem;
       color: var(--muted);
     }
@@ -563,6 +680,134 @@
       gap: 0.35rem;
     }
 
+    .cover-preview-button {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.65rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.26);
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease, transform 0.18s ease;
+    }
+
+    .cover-preview-button:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .cover-preview-button svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .cover-modal.hidden {
+      display: none;
+    }
+
+    .cover-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3200;
+      background: rgba(15, 23, 42, 0.76);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .cover-modal-dialog {
+      width: min(720px, 96vw);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.2rem;
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.6);
+    }
+
+    .cover-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .cover-modal-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cover-modal-body {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .cover-card {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .cover-card h3 {
+      margin: 0;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .cover-card img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.45);
+    }
+
+    .cover-card footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .cover-card footer button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease;
+    }
+
+    .cover-card footer button:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
     .tool-output {
       font-size: 0.78rem;
       color: var(--muted);
@@ -614,6 +859,258 @@
       transition: width 0.2s ease;
     }
 
+    .file-modal.hidden {
+      display: none;
+    }
+
+    .file-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 3000;
+    }
+
+    .file-modal-dialog {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 18px;
+      width: min(780px, 95vw);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
+      overflow: hidden;
+    }
+
+    .file-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      gap: 1rem;
+    }
+
+    .file-modal-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .file-modal-path {
+      margin: 0.2rem 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .file-modal-body {
+      padding: 1rem 1.25rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      overflow: hidden;
+    }
+
+    .file-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .file-toolbar button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+      font-size: 0.8rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .file-toolbar button:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    .file-toolbar button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .file-toolbar label {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 10px;
+      padding: 0.45rem 0.85rem;
+      color: var(--text);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.18);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .file-toolbar label:hover {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    #file-upload-input {
+      display: none;
+    }
+
+    .file-selection-count {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .file-breadcrumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .file-breadcrumbs button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+      transition: background 0.2s ease;
+    }
+
+    .file-breadcrumbs button:hover {
+      background: rgba(148, 163, 184, 0.18);
+      color: var(--text);
+    }
+
+    .file-list {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.6);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 45vh;
+    }
+
+    .file-header,
+    .file-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 90px 130px 120px;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.55rem 0.85rem;
+    }
+
+    .file-header {
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .file-rows {
+      overflow: auto;
+    }
+
+    .file-row {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      font-size: 0.85rem;
+      transition: background 0.15s ease;
+    }
+
+    .file-row:last-child {
+      border-bottom: none;
+    }
+
+    .file-row.selected {
+      background: rgba(56, 189, 248, 0.16);
+    }
+
+    .file-row.directory .file-name {
+      color: var(--text);
+    }
+
+    .file-name {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .file-name:hover {
+      color: var(--text);
+    }
+
+    .file-name svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .file-actions {
+      display: inline-flex;
+      gap: 0.35rem;
+    }
+
+    .file-actions button {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      font-size: 0.72rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .file-actions button:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .file-actions button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .file-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .file-status {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .file-empty-message {
+      padding: 1.2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
     @media (max-width: 960px) {
       .toolbox {
         flex: 1 1 100%;
@@ -631,12 +1128,22 @@
   <header>
     <div class="brand-row">
       <img src="logo.svg" alt="Podfree" class="site-logo" />
-      <nav class="top-nav">
-        <a class="nav-link" href="projects.html">Projects</a>
-        <a class="nav-link active" href="editor.html">Editor</a>
-        <a class="nav-link" href="notes_editor.html">Notes</a>
-        <a class="nav-link" href="#" id="logout-link">Logout</a>
-      </nav>
+      <div class="brand-actions">
+        <nav class="top-nav">
+          <a class="nav-link" href="projects.html">Projects</a>
+          <a class="nav-link active" href="editor.html">Editor</a>
+          <a class="nav-link" href="light_editor.html">Video</a>
+          <a class="nav-link" href="notes_editor.html">Notes</a>
+          <a class="nav-link" href="#" id="logout-link">Logout</a>
+        </nav>
+        <button id="file-manager-button" class="icon-button with-label" type="button" title="Manage workspace files">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6a2 2 0 0 1 2-2h4.172a2 2 0 0 1 1.414.586L12.828 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z" />
+            <path d="M8 11h8v2H8z" fill="currentColor" />
+          </svg>
+          <span>Files</span>
+        </button>
+      </div>
     </div>
     <h1 id="page-title">Edit Project</h1>
     <form id="title-form" class="title-form">
@@ -647,16 +1154,15 @@
         <span id="title-status" class="title-status">Idle</span>
       </div>
     </form>
-    <div id="participant-info" class="participant-info">
-      <span id="interviewer-label" class="participant-pill interviewer missing">
-        <strong>Interviewer</strong>
-        <span class="participant-name">—</span>
-      </span>
-      <span id="guest-label" class="participant-pill guest missing">
-        <strong>Guest</strong>
-        <span class="participant-name">—</span>
-      </span>
-    </div>
+    <form id="participant-form" class="participant-form">
+      <label for="interviewer-input">Participants</label>
+      <div class="participant-row">
+        <input id="interviewer-input" type="text" placeholder="Interviewer name" disabled />
+        <input id="guest-input" type="text" placeholder="Guest name" disabled />
+        <button id="participant-save" type="submit" disabled>Save</button>
+        <span id="participant-status" class="participant-status">Open a project from Projects →</span>
+      </div>
+    </form>
   </header>
 
   <main class="layout">
@@ -700,6 +1206,53 @@
       <div id="job-list" class="job-list"></div>
     </aside>
   </main>
+
+  <div id="file-manager-modal" class="file-modal hidden" role="dialog" aria-modal="true" aria-labelledby="file-manager-title">
+    <div class="file-modal-dialog">
+      <div class="file-modal-header">
+        <div>
+          <h2 id="file-manager-title">Workspace Files</h2>
+          <p id="file-manager-path" class="file-modal-path"></p>
+        </div>
+        <button type="button" id="file-manager-close" class="icon-button small" aria-label="Close file manager">&times;</button>
+      </div>
+      <div class="file-modal-body">
+        <div class="file-toolbar">
+          <button type="button" id="file-download-selected" disabled>Download Selected</button>
+          <button type="button" id="file-delete-selected" disabled>Delete Selected</button>
+          <button type="button" id="file-download-all">Download Project (.zip)</button>
+          <label for="file-upload-input">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:currentColor;"><path d="M5 20h14v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h2v3Z" opacity="0.35"/><path d="M12 3a1 1 0 0 1 1 1v9.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L11 13.586V4a1 1 0 0 1 1-1Z"/></svg>
+            Upload Files
+          </label>
+          <input id="file-upload-input" type="file" multiple />
+          <span id="file-selection-count" class="file-selection-count">Select files to enable actions.</span>
+        </div>
+        <div id="file-breadcrumbs" class="file-breadcrumbs"></div>
+        <div class="file-list">
+          <div class="file-header">
+            <span></span>
+            <span>Name</span>
+            <span>Size</span>
+            <span>Modified</span>
+            <span>Actions</span>
+          </div>
+          <div id="file-manager-rows" class="file-rows"></div>
+        </div>
+        <p id="file-manager-status" class="file-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="cover-preview-modal" class="cover-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cover-preview-title">
+    <div class="cover-modal-dialog">
+      <div class="cover-modal-header">
+        <h2 id="cover-preview-title">Covers</h2>
+        <button type="button" id="cover-preview-close" class="icon-button small" aria-label="Close cover preview">&times;</button>
+      </div>
+      <div id="cover-preview-body" class="cover-modal-body"></div>
+    </div>
+  </div>
 
   <script>
     function redirectToLogin() {
@@ -750,30 +1303,271 @@
     const titleInput = document.getElementById('title-input');
     const titleSave = document.getElementById('title-save');
     const titleStatus = document.getElementById('title-status');
+    const participantForm = document.getElementById('participant-form');
+    const interviewerInput = document.getElementById('interviewer-input');
+    const guestInput = document.getElementById('guest-input');
+    const participantSave = document.getElementById('participant-save');
+    const participantStatus = document.getElementById('participant-status');
     const transcriptEl = document.getElementById('transcript');
     const transcriptStatus = document.getElementById('transcript-status');
     const participantInfo = document.getElementById('participant-info');
     const interviewerLabelEl = document.getElementById('interviewer-label');
     const guestLabelEl = document.getElementById('guest-label');
     const logoutLink = document.getElementById('logout-link');
+    const fileManagerButton = document.getElementById('file-manager-button');
+    const fileManagerModal = document.getElementById('file-manager-modal');
+    const fileManagerClose = document.getElementById('file-manager-close');
+    const fileManagerRows = document.getElementById('file-manager-rows');
+    const fileManagerStatus = document.getElementById('file-manager-status');
+    const fileSelectionCount = document.getElementById('file-selection-count');
+    const fileDownloadSelectedBtn = document.getElementById('file-download-selected');
+    const fileDeleteSelectedBtn = document.getElementById('file-delete-selected');
+    const fileDownloadAllBtn = document.getElementById('file-download-all');
+    const fileBreadcrumbs = document.getElementById('file-breadcrumbs');
+    const fileManagerPath = document.getElementById('file-manager-path');
+    const coverPreviewModal = document.getElementById('cover-preview-modal');
+    const coverPreviewClose = document.getElementById('cover-preview-close');
+    const coverPreviewBody = document.getElementById('cover-preview-body');
+    const fileUploadInput = document.getElementById('file-upload-input');
 
     let workspaceInfo = null;
-    let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null };
+    let workspaceProjectName = null;
+    let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
     let workspaceSources = { original: null, proxy: null };
     let currentSourceRole = 'original';
     const scriptButtons = new Map();
+    const scriptStateCache = { key: null, data: {} };
     let transcriptSource = { kind: null, name: null, url: null };
     let wordSpans = [];
     let activeWordIndex = -1;
     let lastNotesContent = null;
     let guestName = '';
     let interviewerName = '';
+    const fileManagerState = {
+      currentDir: '.',
+      entries: [],
+      selected: new Set(),
+      breadcrumbs: [],
+    };
     let speakerMap = new Map();
     const SEEK_EPSILON = 0.2;
     const MERGE_GAP_SECONDS = 1.5;
 
     if (logoutLink) {
       logoutLink.addEventListener('click', handleLogout);
+    }
+
+    if (fileDownloadAllBtn) {
+      fileDownloadAllBtn.disabled = true;
+    }
+
+    if (fileManagerButton) {
+      fileManagerButton.addEventListener('click', () => openFileManager('.'));
+    }
+
+    if (fileManagerClose) {
+      fileManagerClose.addEventListener('click', closeFileManager);
+    }
+
+    if (fileManagerModal) {
+      fileManagerModal.addEventListener('click', (event) => {
+        if (event.target === fileManagerModal) {
+          closeFileManager();
+        }
+      });
+    }
+
+    if (coverPreviewModal) {
+      coverPreviewModal.addEventListener('click', (event) => {
+        if (event.target === coverPreviewModal) {
+          closeCoverPreview();
+        }
+      });
+    }
+
+    if (coverPreviewClose) {
+      coverPreviewClose.addEventListener('click', closeCoverPreview);
+    }
+
+    if (fileDeleteSelectedBtn) {
+      fileDeleteSelectedBtn.addEventListener('click', () => {
+        deleteFiles(Array.from(fileManagerState.selected));
+      });
+    }
+
+    if (fileDownloadSelectedBtn) {
+      fileDownloadSelectedBtn.addEventListener('click', () => {
+        downloadSelected(Array.from(fileManagerState.selected));
+      });
+    }
+
+    if (fileDownloadAllBtn) {
+      fileDownloadAllBtn.addEventListener('click', downloadProjectArchive);
+    }
+
+    async function uploadFilesToWorkspace(files) {
+      if (!files || !files.length) return;
+      if (!workspaceInfo || !workspaceInfo.path) {
+        alert('Select a project before uploading files.');
+        return;
+      }
+      try {
+        const summary = await fetch('/api/workspace').then((resp) => resp.json());
+        const projectName = summary && summary.project_name ? summary.project_name : null;
+        const workspacePath = summary && summary.path ? summary.path : null;
+        if (projectName) {
+          await uploadViaProjectsEndpoint(projectName, files);
+          await loadWorkspace({ refresh: true });
+          await refreshFileManager('.');
+          return;
+        }
+        if (workspacePath) {
+          await uploadViaWorkspaceEndpoint(workspacePath, files);
+          await loadWorkspace({ refresh: true });
+          await refreshFileManager('.');
+          return;
+        }
+        alert('Workspace path unavailable; cannot determine upload target.');
+      } catch (error) {
+        console.error(error);
+        alert('Upload failed: ' + error.message);
+      }
+    }
+
+    function setFileUploadState(pending = false, message = 'Uploading…') {
+      if (!fileManagerStatus) return;
+      if (pending) {
+        fileManagerStatus.textContent = message;
+      } else {
+        fileManagerStatus.textContent = '';
+      }
+    }
+
+    function uploadViaProjectsEndpoint(projectName, files) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => formData.append('files', file));
+        setFileUploadState(true, 'Uploading…');
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/api/projects/upload?project=${encodeURIComponent(projectName)}`);
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
+          const pct = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+          setFileUploadState(true, `Uploading… ${pct}%`);
+        };
+        xhr.onerror = () => {
+          setFileUploadState(false);
+          reject(new Error('Network error during upload.'));
+        };
+        xhr.onload = () => {
+          setFileUploadState(false);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText || '{}'));
+          } else {
+            reject(new Error(xhr.responseText || xhr.statusText));
+          }
+        };
+        xhr.send(formData);
+      });
+    }
+
+    function uploadViaWorkspaceEndpoint(workspacePath, files) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => formData.append('files', file));
+        setFileUploadState(true, 'Uploading…');
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/workspace/upload');
+        xhr.setRequestHeader('X-Workspace-Path', workspacePath);
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
+          const pct = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+          setFileUploadState(true, `Uploading… ${pct}%`);
+        };
+        xhr.onerror = () => {
+          setFileUploadState(false);
+          reject(new Error('Network error during upload.'));
+        };
+        xhr.onload = () => {
+          setFileUploadState(false);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText || '{}'));
+          } else {
+            reject(new Error(xhr.responseText || xhr.statusText));
+          }
+        };
+        xhr.send(formData);
+      });
+    }
+
+    if (fileUploadInput) {
+      fileUploadInput.addEventListener('change', async (event) => {
+        const input = event.target;
+        if (!input.files || input.files.length === 0) return;
+        const files = Array.from(input.files);
+        input.value = '';
+        await uploadFilesToWorkspace(files);
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (coverPreviewModal && !coverPreviewModal.classList.contains('hidden')) {
+        closeCoverPreview();
+        return;
+      }
+      if (fileManagerModal && !fileManagerModal.classList.contains('hidden')) {
+        closeFileManager();
+      }
+    });
+
+    if (participantForm) {
+      participantForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!participantSave || !interviewerInput || !guestInput) return;
+        const nextInterviewer = interviewerInput.value.trim();
+        const nextGuest = guestInput.value.trim();
+        if (!lastNotesContent) {
+          await loadNotesTitle();
+          if (!lastNotesContent) {
+            setParticipantFormState({ disabled: true, interviewer: nextInterviewer, guest: nextGuest, status: 'Notes unavailable' });
+            return;
+          }
+        }
+        setParticipantFormState({ disabled: true, interviewer: nextInterviewer, guest: nextGuest, status: 'Saving…' });
+        try {
+          let updated = replaceSectionFirstLine(lastNotesContent, '## Interviewer', nextInterviewer);
+          updated = replaceSectionFirstLine(updated, '## Guest', nextGuest);
+          const response = await fetch('/api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: updated }),
+          });
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+          await response.json();
+          lastNotesContent = updated;
+          interviewerName = nextInterviewer;
+          guestName = nextGuest;
+          updateParticipantDisplay();
+          setParticipantFormState({ disabled: false, interviewer: nextInterviewer, guest: nextGuest, status: `Saved at ${new Date().toLocaleTimeString()}` });
+        } catch (error) {
+          console.error(error);
+          alert('Unable to update participants: ' + error.message);
+          setParticipantFormState({ disabled: false, interviewer: nextInterviewer, guest: nextGuest, status: 'Save failed' });
+        }
+      });
+    }
+
+    function updateBodyModalState() {
+      const filesOpen = fileManagerModal && !fileManagerModal.classList.contains('hidden');
+      const coversOpen = coverPreviewModal && !coverPreviewModal.classList.contains('hidden');
+      if (filesOpen || coversOpen) {
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
     }
 
     function updateParticipantDisplay() {
@@ -799,6 +1593,36 @@
         const hasNames = Boolean(guestName || interviewerName);
         participantInfo.classList.toggle('all-missing', !hasNames);
       }
+      setParticipantFormState({
+        disabled: participantSave ? participantSave.disabled : true,
+        interviewer: interviewerName || '',
+        guest: guestName || '',
+        status: participantStatus ? participantStatus.textContent : undefined,
+      });
+    }
+
+    function setParticipantFormState({ disabled = false, interviewer = null, guest = null, status } = {}) {
+      const nextStatus = typeof status === 'string'
+        ? status
+        : (participantStatus ? participantStatus.textContent || 'Idle' : 'Idle');
+      if (typeof interviewer === 'string' && interviewerInput) {
+        interviewerInput.value = interviewer;
+      }
+      if (typeof guest === 'string' && guestInput) {
+        guestInput.value = guest;
+      }
+      if (participantSave) {
+        participantSave.disabled = disabled;
+      }
+      if (interviewerInput) {
+        interviewerInput.disabled = disabled;
+      }
+      if (guestInput) {
+        guestInput.disabled = disabled;
+      }
+      if (participantStatus) {
+        participantStatus.textContent = nextStatus;
+      }
     }
 
     async function setWorkspacePath(path) {
@@ -817,6 +1641,367 @@
     function workspaceUrl(name) {
       if (!name) return null;
       return "/workspace/" + name.split("/").map(encodeURIComponent).join("/");
+    }
+
+    function triggerDownload(url, filename) {
+      if (!url) return;
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      if (filename) {
+        anchor.download = filename;
+      }
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    }
+
+    function humanFileSize(bytes) {
+      if (bytes === null || bytes === undefined) return '—';
+      if (bytes === 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let value = bytes;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      const decimals = unitIndex === 0 || value >= 10 ? 0 : 1;
+      return `${value.toFixed(decimals)} ${units[unitIndex]}`;
+    }
+
+    function formatModified(timestamp) {
+      if (!timestamp) return '—';
+      try {
+        return new Date(timestamp * 1000).toLocaleString();
+      } catch (error) {
+        return '—';
+      }
+    }
+
+    function updateDownloadAllState() {
+      if (!fileDownloadAllBtn) return;
+      fileDownloadAllBtn.disabled = !workspaceProjectName;
+    }
+
+    function resetFileManagerSelection() {
+      fileManagerState.selected.clear();
+      if (fileManagerRows) {
+        fileManagerRows.querySelectorAll('.file-row').forEach((row) => row.classList.remove('selected'));
+        fileManagerRows.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+          checkbox.checked = false;
+        });
+      }
+      updateFileManagerActions();
+    }
+
+    function updateFileManagerActions() {
+      if (!fileSelectionCount) return;
+      const count = fileManagerState.selected.size;
+      fileSelectionCount.textContent = count
+        ? `${count} item${count === 1 ? '' : 's'} selected`
+        : 'Select files to enable actions.';
+      if (fileDownloadSelectedBtn) {
+        fileDownloadSelectedBtn.disabled = count === 0;
+      }
+      if (fileDeleteSelectedBtn) {
+        fileDeleteSelectedBtn.disabled = count === 0;
+      }
+      updateDownloadAllState();
+    }
+
+    function updateFileManagerBreadcrumbs() {
+      if (!fileBreadcrumbs) return;
+      fileBreadcrumbs.textContent = '';
+      const crumbs = (fileManagerState.breadcrumbs && fileManagerState.breadcrumbs.length)
+        ? fileManagerState.breadcrumbs
+        : [{ label: 'Workspace', path: '.' }];
+      crumbs.forEach((crumb, index) => {
+        if (index > 0) {
+          const divider = document.createElement('span');
+          divider.textContent = '/';
+          divider.style.opacity = 0.6;
+          fileBreadcrumbs.appendChild(divider);
+        }
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = crumb.label || crumb.path || '.';
+        button.addEventListener('click', () => {
+          refreshFileManager(crumb.path || '.');
+        });
+        fileBreadcrumbs.appendChild(button);
+      });
+    }
+
+    function updateFileManagerPathLabel() {
+      if (!fileManagerPath) return;
+      const dir = fileManagerState.currentDir;
+      const suffix = dir === '.' ? 'Workspace' : `Workspace/${dir}`;
+      fileManagerPath.textContent = suffix;
+    }
+
+    function handleRowSelection(path, checked, rowElement) {
+      if (!path) return;
+      if (checked) {
+        fileManagerState.selected.add(path);
+        if (rowElement) rowElement.classList.add('selected');
+      } else {
+        fileManagerState.selected.delete(path);
+        if (rowElement) rowElement.classList.remove('selected');
+      }
+      updateFileManagerActions();
+    }
+
+    function buildFileRow(entry) {
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.dataset.path = entry.path;
+      if (entry.is_dir) {
+        row.classList.add('directory');
+      }
+
+      const checkboxWrapper = document.createElement('div');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.addEventListener('change', (event) => {
+        handleRowSelection(entry.path, event.target.checked, row);
+      });
+      checkboxWrapper.appendChild(checkbox);
+      row.appendChild(checkboxWrapper);
+
+      const nameButton = document.createElement('button');
+      nameButton.type = 'button';
+      nameButton.className = 'file-name';
+      const iconSvg = entry.is_dir
+        ? '<svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h4.172a2 2 0 0 1 1.414.586L12.828 6H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M6 2a2 2 0 0 0-2 2v16l6-3 6 3V4a2 2 0 0 0-2-2H6z"/></svg>';
+      nameButton.innerHTML = `${iconSvg}<span>${entry.name}</span>`;
+      if (entry.is_dir) {
+        nameButton.addEventListener('click', () => {
+          refreshFileManager(entry.path);
+        });
+      } else {
+        nameButton.addEventListener('click', () => {
+          const url = workspaceUrl(entry.path);
+          triggerDownload(url, entry.name);
+        });
+      }
+      row.appendChild(nameButton);
+
+      const sizeSpan = document.createElement('span');
+      sizeSpan.textContent = entry.is_dir ? '—' : humanFileSize(entry.size);
+      row.appendChild(sizeSpan);
+
+      const modifiedSpan = document.createElement('span');
+      modifiedSpan.textContent = formatModified(entry.modified);
+      row.appendChild(modifiedSpan);
+
+      const actions = document.createElement('div');
+      actions.className = 'file-actions';
+      const downloadBtn = document.createElement('button');
+      downloadBtn.type = 'button';
+      downloadBtn.textContent = 'Download';
+      downloadBtn.addEventListener('click', () => {
+        downloadSelected([entry.path]);
+      });
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => {
+        deleteFiles([entry.path]);
+      });
+      actions.appendChild(downloadBtn);
+      actions.appendChild(deleteBtn);
+      row.appendChild(actions);
+
+      return row;
+    }
+
+    function updateFileManagerRows() {
+      if (!fileManagerRows) return;
+      fileManagerRows.textContent = '';
+      if (!fileManagerState.entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'file-empty-message';
+        empty.textContent = 'No files in this directory yet.';
+        fileManagerRows.appendChild(empty);
+        return;
+      }
+      fileManagerState.entries.forEach((entry) => {
+        const row = buildFileRow(entry);
+        fileManagerRows.appendChild(row);
+      });
+    }
+
+    function renderFileManager(data) {
+      fileManagerState.currentDir = data.directory || '.';
+      fileManagerState.entries = data.entries || [];
+      fileManagerState.breadcrumbs = data.breadcrumbs || [];
+      fileManagerState.selected.clear();
+      updateFileManagerBreadcrumbs();
+      updateFileManagerPathLabel();
+      updateFileManagerRows();
+      updateFileManagerActions();
+      if (fileManagerStatus) {
+        fileManagerStatus.textContent = '';
+      }
+      if (typeof data.project_name === 'string') {
+        workspaceProjectName = data.project_name;
+        updateDownloadAllState();
+      }
+    }
+
+    async function refreshFileManager(dir = fileManagerState.currentDir) {
+      if (!fileManagerModal || fileManagerModal.classList.contains('hidden')) return;
+      try {
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = 'Loading…';
+        }
+        const params = new URLSearchParams();
+        if (dir && dir !== '.') {
+          params.set('dir', dir);
+        }
+        const response = await fetch(`/api/workspace/files?${params.toString()}`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        renderFileManager(data);
+      } catch (error) {
+        console.error(error);
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = `Unable to list files: ${error.message}`;
+        }
+      }
+    }
+
+    function openFileManager(dir = '.') {
+      if (!fileManagerModal) return;
+      if (!workspaceInfo || !workspaceInfo.path) {
+        alert('Select a project before managing files.');
+        return;
+      }
+      fileManagerModal.classList.remove('hidden');
+      fileManagerStatus.textContent = '';
+      updateDownloadAllState();
+      updateBodyModalState();
+      refreshFileManager(dir);
+    }
+
+    function closeFileManager() {
+      if (!fileManagerModal) return;
+      fileManagerModal.classList.add('hidden');
+      resetFileManagerSelection();
+      if (fileManagerStatus) {
+        fileManagerStatus.textContent = '';
+      }
+      updateBodyModalState();
+    }
+
+    async function deleteFiles(paths) {
+      if (!paths || !paths.length) return;
+      const confirmDelete = window.confirm(
+        paths.length === 1
+          ? `Delete “${paths[0]}”? This action cannot be undone.`
+          : `Delete ${paths.length} items? This action cannot be undone.`
+      );
+      if (!confirmDelete) return;
+
+      try {
+        const response = await fetch('/api/workspace/delete-files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || response.statusText);
+        }
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = `Deleted ${data.paths.length} item${data.paths.length === 1 ? '' : 's'}.`;
+        }
+        resetFileManagerSelection();
+        await loadWorkspace({ refresh: true });
+        await refreshFileManager(fileManagerState.currentDir);
+      } catch (error) {
+        console.error(error);
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = `Delete failed: ${error.message}`;
+        }
+      }
+    }
+
+    async function downloadSelected(paths) {
+      if (!paths || !paths.length) return;
+      if (paths.length === 1) {
+        const relative = paths[0];
+        const selectedEntry = fileManagerState.entries.find((entry) => entry.path === relative);
+        const url = workspaceUrl(relative);
+        if (selectedEntry && selectedEntry.is_dir) {
+          const ok = await downloadZip(paths);
+          if (ok) {
+            resetFileManagerSelection();
+          }
+          return;
+        } else {
+          triggerDownload(url, selectedEntry ? selectedEntry.name : undefined);
+          resetFileManagerSelection();
+          return;
+        }
+      }
+      const ok = await downloadZip(paths);
+      if (ok) {
+        resetFileManagerSelection();
+      }
+    }
+
+    async function downloadZip(paths) {
+      try {
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = 'Preparing download…';
+        }
+        const response = await fetch('/api/workspace/download-zip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths }),
+        });
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}));
+          throw new Error(errorPayload.error || response.statusText);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, 'workspace-files.zip');
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = '';
+        }
+        return true;
+      } catch (error) {
+        console.error(error);
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = `Download failed: ${error.message}`;
+        }
+        return false;
+      }
+    }
+
+    function downloadProjectArchive() {
+      if (!workspaceProjectName) {
+        if (fileManagerStatus) {
+          fileManagerStatus.textContent = 'Project zip is only available for workspaces inside the Projects folder.';
+        }
+        return;
+      }
+      if (fileManagerStatus) {
+        fileManagerStatus.textContent = 'Preparing project archive…';
+      }
+      const url = `/api/projects/download?project=${encodeURIComponent(workspaceProjectName)}`;
+      triggerDownload(url, `${workspaceProjectName}.zip`);
+      setTimeout(() => {
+        if (fileManagerStatus && fileManagerModal && !fileManagerModal.classList.contains('hidden')) {
+          fileManagerStatus.textContent = '';
+        }
+      }, 1200);
     }
 
     async function applyWorkspaceFromQuery() {
@@ -925,6 +2110,26 @@
         lines.push(newTitle, '');
       } else {
         lines[idx] = newTitle;
+      }
+      return lines.join('\n');
+    }
+
+    function replaceSectionFirstLine(content, heading, newLine) {
+      const lines = content.split(/\r?\n/);
+      const target = String(heading || '').trim().toLowerCase();
+      let idx = lines.findIndex((line) => line.trim().toLowerCase() === target);
+      if (idx === -1) {
+        lines.push('', heading, newLine, '');
+        return lines.join('\n');
+      }
+      idx += 1;
+      while (idx < lines.length && !lines[idx].trim()) {
+        idx += 1;
+      }
+      if (idx >= lines.length || lines[idx].startsWith('## ')) {
+        lines.splice(idx, 0, newLine, '');
+      } else {
+        lines[idx] = newLine;
       }
       return lines.join('\n');
     }
@@ -1373,21 +2578,23 @@
           throw new Error(await response.text());
         }
         const data = await response.json();
-        lastNotesContent = data.content || '';
-        const currentTitle = extractTitleSection(lastNotesContent) || '';
-        guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
-        interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
-        updateParticipantDisplay();
-        setTitleFormState({ disabled: false, value: currentTitle, status: 'Idle' });
-      } catch (error) {
-        console.error(error);
-        lastNotesContent = null;
-        guestName = '';
-        interviewerName = '';
-        updateParticipantDisplay();
-        setTitleFormState({ disabled: true, value: '', status: 'Notes unavailable' });
-      }
-    }
+    lastNotesContent = data.content || '';
+    const currentTitle = extractTitleSection(lastNotesContent) || '';
+    guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
+    interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
+    updateParticipantDisplay();
+    setTitleFormState({ disabled: false, value: currentTitle, status: 'Idle' });
+    setParticipantFormState({ disabled: false, interviewer: interviewerName || '', guest: guestName || '', status: 'Idle' });
+  } catch (error) {
+    console.error(error);
+    lastNotesContent = null;
+    guestName = '';
+    interviewerName = '';
+    updateParticipantDisplay();
+    setTitleFormState({ disabled: true, value: '', status: 'Notes unavailable' });
+    setParticipantFormState({ disabled: true, interviewer: '', guest: '', status: 'Notes unavailable' });
+  }
+}
 
     function describe(name) {
       return name || '—';
@@ -1648,13 +2855,16 @@
 
     async function applyWorkspaceSummary(summary) {
       workspaceInfo = summary;
+      workspaceProjectName = summary && summary.project_name ? summary.project_name : null;
       updateLinks(summary?.path);
       updatePageHeader(summary);
+      closeCoverPreview();
       if (!summary || !summary.valid) {
-        workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null };
+        workspaceProjectName = null;
+        workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
         workspaceSources = { original: null, proxy: null };
         currentSourceRole = 'original';
-        transcriptSource = { kind: null, name: null, url: null };
+      transcriptSource = { kind: null, name: null, url: null };
         guestName = '';
         interviewerName = '';
         speakerMap = new Map();
@@ -1663,13 +2873,22 @@
         resetTranscript('Open a project with a transcript to preview it here.');
         lastNotesContent = null;
         setTitleFormState({ disabled: true, value: '', status: 'Open a project from Projects →' });
+        setParticipantFormState({ disabled: true, interviewer: '', guest: '', status: 'Open a project from Projects →' });
+        updateDownloadAllState();
+        closeFileManager();
+        resetScriptStateCache();
+        scriptButtons.forEach((button) => applyScriptVisualState(button));
         return;
-      }
-      workspaceFiles = Object.assign({ notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null }, summary.files);
-      workspaceSources = {
-        original: workspaceUrl(workspaceFiles.video),
-        proxy: workspaceUrl(workspaceFiles.proxy),
-      };
+    }
+    workspaceFiles = Object.assign({ notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null }, summary.files);
+    workspaceSources = {
+      original: workspaceUrl(workspaceFiles.video),
+      proxy: workspaceUrl(workspaceFiles.proxy),
+    };
+    loadScriptStateMap(true);
+    scriptButtons.forEach((button, scriptName) => {
+      applyScriptVisualState(button, getScriptOutcome(scriptName));
+    });
       currentSourceRole = workspaceSources.proxy ? 'proxy' : 'original';
       transcriptSource = { kind: null, name: null, url: null };
       if (workspaceFiles.transcript_json) {
@@ -1680,7 +2899,9 @@
       guestName = '';
       interviewerName = '';
       updateParticipantDisplay();
+      updateDownloadAllState();
       setTitleFormState({ disabled: true, value: '', status: 'Loading…' });
+      setParticipantFormState({ disabled: true, interviewer: '', guest: '', status: 'Loading…' });
       await loadNotesTitle();
       updateParticipantDisplay();
       if (!workspaceSources.original && !workspaceSources.proxy) {
@@ -1747,6 +2968,162 @@
       return { status: 'failed', message: 'job not found' };
     }
 
+    function scriptStateKey() {
+      if (!workspaceInfo || !workspaceInfo.path) return null;
+      return `podfree-script-state:${workspaceInfo.path}`;
+    }
+
+    function loadScriptStateMap(force = false) {
+      const key = scriptStateKey();
+      if (!key) {
+        scriptStateCache.key = null;
+        scriptStateCache.data = {};
+        return scriptStateCache.data;
+      }
+      if (!force && scriptStateCache.key === key) {
+        return scriptStateCache.data;
+      }
+      let parsed = {};
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (raw) {
+          const candidate = JSON.parse(raw);
+          if (candidate && typeof candidate === 'object') {
+            parsed = candidate;
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to read stored script state:', error);
+      }
+      scriptStateCache.key = key;
+      scriptStateCache.data = parsed;
+      return scriptStateCache.data;
+    }
+
+    function persistScriptStateMap() {
+      if (!scriptStateCache.key) return;
+      try {
+        window.localStorage.setItem(scriptStateCache.key, JSON.stringify(scriptStateCache.data));
+      } catch (error) {
+        console.warn('Unable to persist script state:', error);
+      }
+    }
+
+    function setScriptOutcome(scriptName, outcome) {
+      const map = loadScriptStateMap();
+      if (!map) return;
+      if (outcome) {
+        map[scriptName] = outcome;
+      } else {
+        delete map[scriptName];
+      }
+      persistScriptStateMap();
+    }
+
+    function getScriptOutcome(scriptName) {
+      const map = loadScriptStateMap();
+      return map ? map[scriptName] : undefined;
+    }
+
+    function resetScriptStateCache() {
+      scriptStateCache.key = null;
+      scriptStateCache.data = {};
+    }
+
+    function applyScriptVisualState(button, outcome) {
+      if (!button) return;
+      const statusSpan = button.querySelector('.status');
+      button.classList.remove('completed', 'failed');
+      if (!statusSpan) return;
+      if (outcome === 'completed') {
+        button.classList.add('completed');
+        statusSpan.textContent = 'Done';
+      } else if (outcome === 'failed') {
+        button.classList.add('failed');
+        statusSpan.textContent = 'Failed';
+      } else {
+        statusSpan.textContent = button.dataset.defaultStatus || 'Idle';
+      }
+    }
+
+    function coverLabelFromName(name) {
+      if (!name) return 'Cover';
+      const lowered = String(name).toLowerCase();
+      if (lowered.includes('youtube')) return 'YouTube Cover';
+      if (lowered.includes('podcast')) return 'Podcast Cover';
+      if (lowered.includes('thumb')) return 'Thumbnail';
+      return 'Cover';
+    }
+
+    function closeCoverPreview() {
+      if (!coverPreviewModal) return;
+      coverPreviewModal.classList.add('hidden');
+      if (coverPreviewBody) {
+        coverPreviewBody.textContent = '';
+      }
+      updateBodyModalState();
+    }
+
+    function openCoverPreview(paths) {
+      if (!coverPreviewModal || !Array.isArray(paths) || !paths.length) {
+        alert('No cover images found yet. Generate them first.');
+        return;
+      }
+      if (!workspaceInfo || !workspaceInfo.path) {
+        alert('Open a project before previewing covers.');
+        return;
+      }
+      if (coverPreviewBody) {
+        coverPreviewBody.textContent = '';
+      }
+      let rendered = 0;
+      paths.forEach((relative) => {
+        const url = workspaceUrl(relative);
+        if (!url || !coverPreviewBody) return;
+        const card = document.createElement('div');
+        card.className = 'cover-card';
+        const heading = document.createElement('h3');
+        heading.textContent = coverLabelFromName(relative);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = heading.textContent;
+        img.loading = 'lazy';
+        const footer = document.createElement('footer');
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = relative;
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '0.4rem';
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.textContent = 'Open';
+        openBtn.addEventListener('click', () => {
+          window.open(url, '_blank', 'noopener');
+        });
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.addEventListener('click', () => {
+          triggerDownload(url, relative.split('/').pop());
+        });
+        actions.appendChild(openBtn);
+        actions.appendChild(downloadBtn);
+        footer.appendChild(nameSpan);
+        footer.appendChild(actions);
+        card.appendChild(heading);
+        card.appendChild(img);
+        card.appendChild(footer);
+        coverPreviewBody.appendChild(card);
+        rendered += 1;
+      });
+      if (!rendered) {
+        alert('Unable to load covers. They may have been moved or deleted.');
+        return;
+      }
+      coverPreviewModal.classList.remove('hidden');
+      updateBodyModalState();
+    }
+
     async function runScript(scriptName, button) {
       const statusSpan = button.querySelector('.status');
       const scriptLabel = button.dataset.label || scriptName;
@@ -1770,27 +3147,26 @@
           card.progressFill.style.width = `${Math.min(progress, 100)}%`;
         });
         if (job.status === 'completed') {
-          button.classList.remove('failed', 'pending');
-          button.classList.add('completed');
-          if (statusSpan) statusSpan.textContent = 'Done';
+          setScriptOutcome(scriptName, 'completed');
+          applyScriptVisualState(button, 'completed');
         } else {
-          button.classList.remove('completed');
-          button.classList.add('failed');
-          if (statusSpan) statusSpan.textContent = 'Failed';
+          setScriptOutcome(scriptName, 'failed');
+          applyScriptVisualState(button, 'failed');
         }
         await loadWorkspace({ refresh: true });
         await loadScripts();
       } catch (error) {
         console.error(error);
         alert(`Failed to run ${scriptName}: ${error.message}`);
-        button.classList.add('failed');
-        if (statusSpan) statusSpan.textContent = 'Error';
+        setScriptOutcome(scriptName, 'failed');
+        applyScriptVisualState(button, 'failed');
       } finally {
         button.disabled = false;
       }
     }
 
     function renderScripts(list) {
+      loadScriptStateMap();
       toolList.textContent = '';
       scriptButtons.clear();
       if (!list.length) {
@@ -1815,12 +3191,11 @@
         let statusText = 'Idle';
         if (status === 'ready') {
           statusText = 'Ready';
-          button.classList.add('completed');
         } else if (status === 'missing') {
-          statusText = 'Pending';
-          button.classList.add('pending');
+          statusText = 'Missing';
         }
 
+        button.dataset.defaultStatus = statusText;
         button.innerHTML = `<span>${label}</span><span class="status">${statusText}</span>`;
         button.addEventListener('click', () => runScript(name, button));
         wrapper.appendChild(button);
@@ -1833,8 +3208,26 @@
           wrapper.appendChild(outputNote);
         }
 
+        if (name === 'generate_covers.py' && outputs && outputs.length) {
+          const coverPaths = outputs.slice();
+          const previewBtn = document.createElement('button');
+          previewBtn.type = 'button';
+          previewBtn.className = 'cover-preview-button';
+          previewBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v14a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V5Z" opacity="0.35"/><path d="M16.25 12.25 14.5 14.5l-2-2.25L8 17h10l-1.75-4.75Z" /><circle cx="9" cy="8" r="1.5" /></svg><span>View Covers</span>';
+          previewBtn.addEventListener('click', () => openCoverPreview(coverPaths));
+          wrapper.appendChild(previewBtn);
+        }
+
         toolList.appendChild(wrapper);
         scriptButtons.set(name, button);
+        const persistedOutcome = getScriptOutcome(name);
+        if (persistedOutcome) {
+          applyScriptVisualState(button, persistedOutcome);
+        } else if (outputs && outputs.length) {
+          applyScriptVisualState(button, 'completed');
+        } else {
+          applyScriptVisualState(button, null);
+        }
       });
     }
 

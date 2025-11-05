@@ -242,13 +242,55 @@
       justify-content: center;
       z-index: 1000;
       color: var(--text);
-      font-size: 1.1rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
     }
 
     .upload-loader.hidden {
       display: none;
+    }
+
+    .upload-panel {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 1.5rem 2rem;
+      min-width: min(420px, 80vw);
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.45);
+    }
+
+    .upload-panel h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.22);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      transition: width 0.2s ease;
+    }
+
+    .upload-percentage {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
     }
   </style>
 </head>
@@ -259,6 +301,7 @@
       <nav class="top-nav">
         <a class="nav-link active" href="projects.html">Projects</a>
         <a class="nav-link" href="editor.html">Editor</a>
+        <a class="nav-link" href="light_editor.html">Video</a>
         <a class="nav-link" href="notes_editor.html">Notes</a>
         <a class="nav-link" href="#" id="logout-link">Logout</a>
       </nav>
@@ -287,7 +330,15 @@
     <div id="projects-empty" class="empty-state" style="display:none;">No projects yet. Create one above and upload your files.</div>
   </main>
 
-  <div id="upload-loader" class="upload-loader hidden">Uploading…</div>
+  <div id="upload-loader" class="upload-loader hidden">
+    <div class="upload-panel">
+      <h3 id="upload-message">Uploading…</h3>
+      <div class="progress-track">
+        <div id="upload-progress" class="progress-fill"></div>
+      </div>
+      <p id="upload-percentage" class="upload-percentage">0%</p>
+    </div>
+  </div>
 
   <script>
     function redirectToLogin() {
@@ -326,6 +377,9 @@
     const createStatus = document.getElementById('create-status');
     const refreshBtn = document.getElementById('refresh-projects');
     const uploadLoader = document.getElementById('upload-loader');
+    const uploadMessage = document.getElementById('upload-message');
+    const uploadProgressFill = document.getElementById('upload-progress');
+    const uploadPercentage = document.getElementById('upload-percentage');
     const deleteSelectedBtn = document.getElementById('delete-selected');
     const selectionStatus = document.getElementById('selection-status');
     const logoutLink = document.getElementById('logout-link');
@@ -336,7 +390,14 @@
     }
 
     function formatFiles(files) {
-      return `Notes: ${files.notes || '—'}\nTranscript: ${files.transcript_json || files.srt || '—'}\nVideo: ${files.video || '—'}\nAudio: ${files.audio || '—'}\nProxy: ${files.proxy || '—'}`;
+      return [
+        `Notes: ${files.notes || '—'}`,
+        `Transcript: ${files.transcript_json || files.srt || '—'}`,
+        `Chapters: ${files.chapters || '—'}`,
+        `Video: ${files.video || '—'}`,
+        `Audio: ${files.audio || '—'}`,
+        `Proxy: ${files.proxy || '—'}`,
+      ].join('\n');
     }
 
     function updateSelectionUI() {
@@ -467,6 +528,16 @@
         openNotesBtn.textContent = 'Open in Notes';
         openNotesBtn.addEventListener('click', () => openProject(project.path, 'notes_editor.html'));
 
+        const openLightBtn = document.createElement('button');
+        openLightBtn.type = 'button';
+        openLightBtn.textContent = 'Video';
+        openLightBtn.addEventListener('click', () => openProject(project.path, 'light_editor.html'));
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.textContent = 'Download ZIP';
+        downloadBtn.addEventListener('click', () => downloadProject(project.name));
+
         const rescanBtn = document.createElement('button');
         rescanBtn.type = 'button';
         rescanBtn.textContent = 'Rescan';
@@ -480,6 +551,8 @@
 
         controls.appendChild(openPlayerBtn);
         controls.appendChild(openNotesBtn);
+        controls.appendChild(openLightBtn);
+        controls.appendChild(downloadBtn);
         controls.appendChild(rescanBtn);
         controls.appendChild(deleteBtn);
         card.appendChild(controls);
@@ -491,8 +564,59 @@
 
     function setUploadLoader(visible, message = 'Uploading…') {
       if (!uploadLoader) return;
-      uploadLoader.textContent = message;
       uploadLoader.classList.toggle('hidden', !visible);
+      if (visible) {
+        if (uploadMessage) uploadMessage.textContent = message;
+        if (uploadPercentage) uploadPercentage.textContent = '0%';
+        if (uploadProgressFill) uploadProgressFill.style.width = '0%';
+      }
+    }
+
+    function updateUploadProgress(percent) {
+      const safePercent = Math.min(100, Math.max(0, Math.round(percent)));
+      if (uploadProgressFill) {
+        uploadProgressFill.style.width = `${safePercent}%`;
+      }
+      if (uploadPercentage) {
+        uploadPercentage.textContent = `${safePercent}%`;
+      }
+    }
+
+    async function downloadProject(projectName) {
+      try {
+        const response = await fetch(`/api/projects/download?project=${encodeURIComponent(projectName)}`);
+        if (!response.ok) {
+          let message = response.statusText || 'Download failed.';
+          try {
+            const errorPayload = await response.json();
+            if (errorPayload && errorPayload.error) {
+              message = errorPayload.error;
+            }
+          } catch (_jsonError) {
+            try {
+              const text = await response.text();
+              if (text) {
+                message = text;
+              }
+            } catch (_textError) {
+              // keep default message
+            }
+          }
+          throw new Error(message);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${projectName}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      } catch (error) {
+        console.error(error);
+        alert('Download failed: ' + error.message);
+      }
     }
 
     async function uploadFiles(projectName, files) {
@@ -501,17 +625,44 @@
         files.forEach((file) => formData.append('file', file, file.name));
         if (!files.length) return;
         const query = new URLSearchParams({ project: projectName }).toString();
-        setUploadLoader(true, 'Uploading…');
-        const response = await fetch(`/api/projects/upload?${query}`, {
-          method: 'POST',
-          body: formData,
+        setUploadLoader(true, files.length > 1 ? 'Uploading files…' : `Uploading ${files[0].name}…`);
+        const result = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `/api/projects/upload?${query}`);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable && event.total > 0) {
+              const percent = (event.loaded / event.total) * 100;
+              updateUploadProgress(percent);
+            }
+          };
+
+          xhr.onerror = () => {
+            reject(new Error('Network error during upload.'));
+          };
+
+          xhr.onload = async () => {
+            let data;
+            try {
+              data = JSON.parse(xhr.responseText || '{}');
+            } catch (error) {
+              reject(new Error('Upload response was not valid JSON.'));
+              return;
+            }
+            if (xhr.status < 200 || xhr.status >= 300) {
+              reject(new Error(data.error || `Upload failed with status ${xhr.status}.`));
+              return;
+            }
+            updateUploadProgress(100);
+            resolve(data);
+          };
+
+          xhr.send(formData);
         });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || response.statusText);
-        }
         await listProjects();
-        createStatus.textContent = `Uploaded ${data.saved.length} file(s).`;
+        if (createStatus && result && result.saved) {
+          createStatus.textContent = `Uploaded ${result.saved.length} file(s).`;
+        }
       } catch (error) {
         console.error(error);
         alert('Upload failed: ' + error.message);
