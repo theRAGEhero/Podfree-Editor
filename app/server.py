@@ -449,6 +449,8 @@ def list_projects() -> Dict[str, Any]:
 SCRIPT_LABELS = {
     "deepgram_transcribe_debates.py": "Transcribe with Deepgram",
     "extract_audio_from_video.py": "Extract .mp3 File",
+    "detect_silence.py": "Detect Silence",
+    "remove_silence.py": "Remove Silence (Render)",
     "generate_covers.py": "Generate Covers",
     "generate_chapters.py": "Generate Chapters",
     "export_castopod_chapters.py": "Export Castopod Chapters",
@@ -461,14 +463,16 @@ SCRIPT_LABELS = {
 
 SCRIPT_SORT_PRIORITY = {
     "extract_audio_from_video.py": 0,
-    "deepgram_transcribe_debates.py": 1,
-    "generate_covers.py": 2,
-    "generate_chapters.py": 3,
-    "export_castopod_chapters.py": 4,
-    "prepare_linkedin_post.py": 5,
-    "identify_participants.py": 6,
-    "create_ghost_post.py": 7,
-    "post_to_linkedin.py": 8,
+    "detect_silence.py": 1,
+    "remove_silence.py": 2,
+    "deepgram_transcribe_debates.py": 3,
+    "generate_covers.py": 4,
+    "generate_chapters.py": 5,
+    "export_castopod_chapters.py": 6,
+    "prepare_linkedin_post.py": 7,
+    "identify_participants.py": 8,
+    "create_ghost_post.py": 9,
+    "post_to_linkedin.py": 10,
 }
 
 
