@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a LinkedIn post draft with OpenRouter and write it into Notes.md."""
+"""Generate an episode title using OpenRouter and write it into Notes.md."""
 
 from __future__ import annotations
 
@@ -22,7 +22,6 @@ from utils.llm_client import (
 )
 
 
-DEFAULT_HASHTAGS = "#Podcast #CivicTech #DemocracyInnovation #DigitalPublicInfrastructure"
 TOKEN_PER_WORD_APPROX = 1.3
 
 
@@ -94,52 +93,53 @@ def approximate_tokens(text: str) -> int:
     return int(words * TOKEN_PER_WORD_APPROX)
 
 
-def build_prompt(sections: Dict[str, str], hashtags: str) -> Dict[str, str]:
-    title = sections.get("title") or os.getenv("LINKEDIN_DEFAULT_TITLE") or "New Episode"
-    summary = sections.get("short_description") or sections.get("blog_post", "").split("\n\n")[0]
-    blog_link = (sections.get("blog_link") or "").strip()
-    youtube_link = (sections.get("youtube_link") or "").strip()
-    castopod_link = (sections.get("castopod_link") or "").strip()
-    guest = sections.get("guest")
+def build_prompt(sections: Dict[str, str]) -> Dict[str, str]:
+    guest = sections.get("guest", "")
+    short_description = sections.get("short_description", "")
+    blog_post = sections.get("blog_post", "")
+    chapters = sections.get("chapters", "")
+    
+    # Extract key content for context
+    content_parts = []
+    
+    if guest:
+        content_parts.append(f"GUEST: {guest}")
+    
+    if short_description:
+        content_parts.append(f"DESCRIPTION: {short_description}")
+    
+    if chapters:
+        content_parts.append(f"CHAPTERS:\n{chapters}")
+    
+    if blog_post:
+        # Limit blog post content to avoid token limits
+        blog_excerpt = blog_post[:3000]
+        content_parts.append(f"TRANSCRIPT/CONTENT:\n{blog_excerpt}")
 
-    bullet_points = sections.get("blog_post", "").strip()
-
-    info = {
-        "title": title.strip(),
-        "summary": summary.strip(),
-        "blog_link": blog_link,
-        "youtube_link": youtube_link,
-        "castopod_link": castopod_link,
-        "guest": guest.strip() if guest else None,
-        "hashtags": hashtags.strip(),
-    }
-
-    content_parts = [json.dumps(info, indent=2)]
-    if bullet_points:
-        content_parts.append("BLOG_POST_SECTION:\n" + bullet_points[:4000])
+    context = "\n\n".join(content_parts)
 
     user_prompt = (
-        "You are a social media editor. Using the episode details below, write a LinkedIn post that:\n"
-        "- Hooks the reader in the first sentence.\n"
-        "- Summarizes key takeaways in natural language (no bullet list).\n"
-        "- Mentions the guest by name if provided.\n"
-        "- Includes the provided links with short descriptors (Watch/Listen/Read).\n"
-        "- Ends with the supplied hashtags (ensure they are present exactly once).\n\n"
-        "Return only the final post text."
+        "Generate a compelling podcast episode title based on the information below. The title should:\n"
+        "- Be 5-10 words maximum\n"
+        "- Hook the reader and make them want to listen\n"
+        "- Capture the main theme or most interesting insight\n"
+        "- Include the guest name if it adds value\n"
+        "- Avoid generic phrases like 'Episode X' or 'Interview with'\n"
+        "- Sound natural and engaging\n\n"
+        "Return ONLY the title with no explanations, quotes, or additional text."
     )
 
     return {
-        "system": "You craft concise, engaging LinkedIn posts for podcast episodes.",
-        "user": user_prompt + "\n\n" + "\n\n".join(content_parts),
+        "system": "You create compelling, hook-driven podcast episode titles that make people want to listen. Never include explanatory text, just return the title.",
+        "user": user_prompt + "\n\n" + context,
     }
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate a LinkedIn post draft for Notes.md using OpenRouter.")
+    parser = argparse.ArgumentParser(description="Generate an episode title for Notes.md using OpenRouter.")
     parser.add_argument("--notes", help="Path to Notes.md (defaults to Notes.md in the project root).")
-    parser.add_argument("--hashtags", default=os.getenv("LINKEDIN_HASHTAGS", DEFAULT_HASHTAGS), help="Hashtags to append.")
-    parser.add_argument("--model", default=os.getenv("LINKEDIN_LLM_MODEL", "anthropic/claude-3-haiku"), help="OpenRouter model identifier.")
-    parser.add_argument("--dry-run", action="store_true", help="Print the LinkedIn post instead of updating Notes.md.")
+    parser.add_argument("--model", default=os.getenv("PODFREE_LLM_MODEL", "deepseek/deepseek-r1"), help="OpenRouter model identifier.")
+    parser.add_argument("--dry-run", action="store_true", help="Print the title instead of updating Notes.md.")
     return parser.parse_args()
 
 
@@ -152,10 +152,11 @@ def main() -> None:
         sys.exit(1)
 
     sections = extract_sections(notes_path)
-    prompt_parts = build_prompt(sections, args.hashtags)
+    prompt_parts = build_prompt(sections)
 
-    transcript = sections.get("transcript") or sections.get("blog_post", "")
-    input_tokens_est = approximate_tokens(transcript)
+    # Estimate cost
+    context = prompt_parts["user"]
+    input_tokens_est = approximate_tokens(context)
     cost_estimate = estimate_call_cost(args.model, input_tokens_est)
     hourly_cost = estimate_hourly_cost(args.model)
 
@@ -180,7 +181,7 @@ def main() -> None:
     ]
 
     try:
-        response = call_openrouter(api_key, model=args.model, messages=messages, temperature=0.3)
+        response = call_openrouter(api_key, model=args.model, messages=messages, temperature=0.4)
     except requests.HTTPError as exc:
         print(f"OpenRouter request failed: {exc} — {exc.response.text}", file=sys.stderr)
         sys.exit(1)
@@ -188,13 +189,13 @@ def main() -> None:
         print(f"OpenRouter request error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    post_body = extract_content(response)
+    title = extract_content(response).strip()
 
     if args.dry_run:
-        print(post_body)
+        print(title)
     else:
-        replace_section(notes_path, "## LinkedIn", post_body)
-        print(f"LinkedIn draft updated in {notes_path}")
+        replace_section(notes_path, "## Title", title)
+        print(f"Title updated in {notes_path}")
 
     usage = response.get("usage") or {}
     if usage:

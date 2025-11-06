@@ -589,7 +589,25 @@
       loadNotes();
     });
     // Workspace selection is now driven from projects.html; this page only reflects the active workspace.
+  // Check session on page load
+  async function checkSessionOnLoad() {
+    try {
+      const response = await originalFetch('/api/workspace');
+      if (response.status === 401) {
+        redirectToLogin();
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Session check failed:', error);
+      return false;
+    }
+  }
+
   (async () => {
+    const sessionValid = await checkSessionOnLoad();
+    if (!sessionValid) return;
+    
     await applyWorkspaceFromQuery();
     await applyPendingWorkspace();
     await loadWorkspace();

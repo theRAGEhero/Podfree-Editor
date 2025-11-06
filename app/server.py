@@ -504,8 +504,14 @@ def list_scripts_with_status() -> list[Dict[str, Any]]:
                 seen.append(rel)
         return seen
     scripts: list[Dict[str, Any]] = []
-    for script in sorted(SCRIPTS_DIR.glob("*.py")):
+    for script in sorted(SCRIPTS_DIR.rglob("*.py")):
         name = script.name
+        relative_path = script.relative_to(SCRIPTS_DIR).as_posix()
+        
+        # Skip utility files that aren't meant to be run as scripts
+        if name in ("__init__.py", "llm_client.py"):
+            continue
+        
         label = _script_label(name)
         status = "unknown"
         outputs: list[str] = []
@@ -562,6 +568,7 @@ def list_scripts_with_status() -> list[Dict[str, Any]]:
         scripts.append(
             {
                 "name": name,
+                "path": relative_path,
                 "label": label,
                 "status": status,
                 "outputs": outputs,

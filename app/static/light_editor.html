@@ -423,6 +423,23 @@
       renderMarkers();
     });
 
+    function redirectToLogin() {
+      const currentPath = window.location.pathname;
+      const nextParam = encodeURIComponent(currentPath);
+      window.location.replace(`/login.html?next=${nextParam}`);
+    }
+
+    // Wrap fetch to handle session expiration
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("unauthorized");
+      }
+      return response;
+    };
+
     async function handleLogout(event) {
       if (event) event.preventDefault();
       try {
@@ -711,7 +728,21 @@
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
+    // Check session on page load
+    async function checkSessionOnLoad() {
+      try {
+        const response = await originalFetch('/api/workspace');
+        if (response.status === 401) {
+          redirectToLogin();
+          return;
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+      }
+    }
+
     (async () => {
+      await checkSessionOnLoad();
       await loadWorkspace();
     })();
   </script>

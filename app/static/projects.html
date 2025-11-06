@@ -815,12 +815,33 @@
       }
     });
 
+    // Check session on page load
+    async function checkSessionOnLoad() {
+      try {
+        const response = await originalFetch('/api/projects');
+        if (response.status === 401) {
+          redirectToLogin();
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Session check failed:', error);
+        return false;
+      }
+    }
+
     refreshBtn.addEventListener('click', () => listProjects());
     if (deleteSelectedBtn) {
       deleteSelectedBtn.addEventListener('click', deleteSelectedProjects);
     }
     updateSelectionUI();
-    listProjects();
+    
+    (async () => {
+      const sessionValid = await checkSessionOnLoad();
+      if (sessionValid) {
+        listProjects();
+      }
+    })();
   </script>
 </body>
 </html>

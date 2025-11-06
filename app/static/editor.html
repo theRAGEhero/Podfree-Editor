@@ -621,6 +621,63 @@
     .tool-list {
       display: flex;
       flex-direction: column;
+      gap: 1rem;
+    }
+
+    .category-box {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, 0.05);
+    }
+
+    .category-header {
+      background: rgba(148, 163, 184, 0.1);
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .category-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .category-play-btn {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .category-play-btn:hover {
+      background: rgba(56, 189, 248, 0.3);
+      border-color: rgba(56, 189, 248, 0.6);
+    }
+
+    .category-play-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .category-scripts {
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
       gap: 0.6rem;
     }
 
@@ -3169,6 +3226,7 @@
       loadScriptStateMap();
       toolList.textContent = '';
       scriptButtons.clear();
+      
       if (!list.length) {
         const empty = document.createElement('p');
         empty.textContent = 'No scripts found in the Podfree/scripts folder.';
@@ -3177,58 +3235,124 @@
         toolList.appendChild(empty);
         return;
       }
+
+      // Organize scripts by category
+      const categories = {
+        'editing': { title: 'Editing', scripts: [] },
+        'ai-tools': { title: 'AI Tools', scripts: [] },
+        'publishing': { title: 'Publishing', scripts: [] }
+      };
+
       list.forEach((entry) => {
-        const { name, label, status, outputs = [] } = entry;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'tool-entry';
-
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'tool-button';
-        button.dataset.script = name;
-        button.dataset.label = label;
-
-        let statusText = 'Idle';
-        if (status === 'ready') {
-          statusText = 'Ready';
-        } else if (status === 'missing') {
-          statusText = 'Missing';
-        }
-
-        button.dataset.defaultStatus = statusText;
-        button.innerHTML = `<span>${label}</span><span class="status">${statusText}</span>`;
-        button.addEventListener('click', () => runScript(name, button));
-        wrapper.appendChild(button);
-
-        if (outputs && outputs.length) {
-          button.title = `Outputs:\n${outputs.join('\n')}`;
-          const outputNote = document.createElement('div');
-          outputNote.className = 'tool-output';
-          outputNote.textContent = `Outputs: ${outputs.join(', ')}`;
-          wrapper.appendChild(outputNote);
-        }
-
-        if (name === 'generate_covers.py' && outputs && outputs.length) {
-          const coverPaths = outputs.slice();
-          const previewBtn = document.createElement('button');
-          previewBtn.type = 'button';
-          previewBtn.className = 'cover-preview-button';
-          previewBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v14a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V5Z" opacity="0.35"/><path d="M16.25 12.25 14.5 14.5l-2-2.25L8 17h10l-1.75-4.75Z" /><circle cx="9" cy="8" r="1.5" /></svg><span>View Covers</span>';
-          previewBtn.addEventListener('click', () => openCoverPreview(coverPaths));
-          wrapper.appendChild(previewBtn);
-        }
-
-        toolList.appendChild(wrapper);
-        scriptButtons.set(name, button);
-        const persistedOutcome = getScriptOutcome(name);
-        if (persistedOutcome) {
-          applyScriptVisualState(button, persistedOutcome);
-        } else if (outputs && outputs.length) {
-          applyScriptVisualState(button, 'completed');
-        } else {
-          applyScriptVisualState(button, null);
+        const { path } = entry;
+        const category = path.split('/')[0];
+        if (categories[category]) {
+          categories[category].scripts.push(entry);
         }
       });
+
+      // Create category boxes
+      Object.entries(categories).forEach(([categoryKey, categoryData]) => {
+        if (categoryData.scripts.length === 0) return;
+
+        const categoryBox = document.createElement('div');
+        categoryBox.className = 'category-box';
+
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'category-header';
+
+        const categoryTitle = document.createElement('h3');
+        categoryTitle.className = 'category-title';
+        categoryTitle.textContent = categoryData.title;
+
+        const playButton = document.createElement('button');
+        playButton.className = 'category-play-btn';
+        playButton.innerHTML = '▶ Run All';
+        playButton.addEventListener('click', () => runCategoryScripts(categoryData.scripts));
+
+        categoryHeader.appendChild(categoryTitle);
+        categoryHeader.appendChild(playButton);
+
+        const scriptsContainer = document.createElement('div');
+        scriptsContainer.className = 'category-scripts';
+
+        categoryData.scripts.forEach((entry) => {
+          const { name, path, label, status, outputs = [] } = entry;
+          const wrapper = document.createElement('div');
+          wrapper.className = 'tool-entry';
+
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'tool-button';
+          button.dataset.script = name;
+          button.dataset.label = label;
+
+          let statusText = 'Idle';
+          if (status === 'ready') {
+            statusText = 'Ready';
+          } else if (status === 'missing') {
+            statusText = 'Missing';
+          }
+
+          button.dataset.defaultStatus = statusText;
+          button.innerHTML = `<span>${label}</span><span class="status">${statusText}</span>`;
+          button.addEventListener('click', () => runScript(path, button));
+          wrapper.appendChild(button);
+
+          if (outputs && outputs.length) {
+            button.title = `Outputs:\n${outputs.join('\n')}`;
+            const outputNote = document.createElement('div');
+            outputNote.className = 'tool-output';
+            outputNote.textContent = `Outputs: ${outputs.join(', ')}`;
+            wrapper.appendChild(outputNote);
+          }
+
+          if (name === 'generate_covers.py' && outputs && outputs.length) {
+            const coverPaths = outputs.slice();
+            const previewBtn = document.createElement('button');
+            previewBtn.type = 'button';
+            previewBtn.className = 'cover-preview-button';
+            previewBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v14a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V5Z" opacity="0.35"/><path d="M16.25 12.25 14.5 14.5l-2-2.25L8 17h10l-1.75-4.75Z" /><circle cx="9" cy="8" r="1.5" /></svg><span>View Covers</span>';
+            previewBtn.addEventListener('click', () => openCoverPreview(coverPaths));
+            wrapper.appendChild(previewBtn);
+          }
+
+          scriptsContainer.appendChild(wrapper);
+          scriptButtons.set(name, button);
+          const persistedOutcome = getScriptOutcome(name);
+          if (persistedOutcome) {
+            applyScriptVisualState(button, persistedOutcome);
+          } else if (outputs && outputs.length) {
+            applyScriptVisualState(button, 'completed');
+          } else {
+            applyScriptVisualState(button, null);
+          }
+        });
+
+        categoryBox.appendChild(categoryHeader);
+        categoryBox.appendChild(scriptsContainer);
+        toolList.appendChild(categoryBox);
+      });
+    }
+
+    async function runCategoryScripts(scripts) {
+      if (!scripts || scripts.length === 0) {
+        alert('No scripts to run in this category.');
+        return;
+      }
+
+      const confirmed = confirm(`Run all ${scripts.length} scripts in this category? This will execute them sequentially.`);
+      if (!confirmed) return;
+
+      for (const script of scripts) {
+        const { path, name } = script;
+        const button = scriptButtons.get(name);
+        if (button) {
+          await runScript(path, button);
+          // Small delay between scripts
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
 
     async function loadScripts() {
@@ -3310,7 +3434,25 @@
 
     setTitleFormState({ disabled: true, value: '', status: 'Open a project from Projects →' });
 
+    // Check session on page load
+    async function checkSessionOnLoad() {
+      try {
+        const response = await originalFetch('/api/workspace');
+        if (response.status === 401) {
+          redirectToLogin();
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Session check failed:', error);
+        return false;
+      }
+    }
+
     (async () => {
+      const sessionValid = await checkSessionOnLoad();
+      if (!sessionValid) return;
+      
       await applyWorkspaceFromQuery();
       await applyPendingWorkspace();
       await loadWorkspace();
