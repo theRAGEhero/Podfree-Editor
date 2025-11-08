@@ -458,6 +458,10 @@ SCRIPT_LABELS = {
     "create_ghost_post.py": "Post to Ghost CMS",
     "castopod_post.py": "Castopod Draft",
     "post_to_linkedin.py": "Post to LinkedIn",
+    "post_to_facebook.py": "Post to Facebook",
+    "post_to_twitter.py": "Post to Twitter/X",
+    "post_to_mastodon.py": "Post to Mastodon",
+    "post_to_bluesky.py": "Post to Bluesky",
     "identify_participants.py": "Identify Participants",
 }
 
@@ -472,7 +476,12 @@ SCRIPT_SORT_PRIORITY = {
     "prepare_linkedin_post.py": 7,
     "identify_participants.py": 8,
     "create_ghost_post.py": 9,
-    "post_to_linkedin.py": 10,
+    "castopod_post.py": 10,
+    "post_to_linkedin.py": 11,
+    "post_to_facebook.py": 12,
+    "post_to_twitter.py": 13,
+    "post_to_mastodon.py": 14,
+    "post_to_bluesky.py": 15,
 }
 
 
