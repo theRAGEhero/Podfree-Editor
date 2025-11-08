@@ -2,7 +2,7 @@
 """Publish a Facebook post using content from Notes.md.
 
 This script posts to a Facebook Page using the Graph API. It reads content from
-the "## Facebook" section in Notes.md or accepts text via --text argument.
+the "## Long Social" section in Notes.md or accepts text via --text argument.
 
 Environment variables:
   FACEBOOK_PAGE_ID - The ID of the Facebook Page to post to
@@ -68,9 +68,9 @@ def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
 
 
 def extract_facebook_section(notes_path: Path) -> str:
-    """Extract the Facebook section from Notes.md."""
+    """Extract the Long Social section from Notes.md."""
     content = notes_path.read_text(encoding="utf-8")
-    marker = "## Facebook"
+    marker = "## Long Social"
     if marker not in content:
         return ""
     prefix, suffix = content.split(marker, 1)
@@ -138,8 +138,8 @@ def main() -> int:
             return 1
         text = extract_facebook_section(notes_path)
         if not text:
-            print("❌ Facebook section in Notes.md is empty.")
-            print("   Add a '## Facebook' section or use --text.")
+            print("❌ Long Social section in Notes.md is empty.")
+            print("   Add a '## Long Social' section or use --text.")
             return 1
 
     print("Facebook post to publish:\n")

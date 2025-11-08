@@ -2,7 +2,7 @@
 """Publish a post to Mastodon using content from Notes.md.
 
 This script posts to Mastodon using the Mastodon API. It reads content from
-the "## Mastodon" section in Notes.md or accepts text via --text argument.
+the "## Short Social" section in Notes.md or accepts text via --text argument.
 
 Environment variables:
   MASTODON_INSTANCE_URL - The Mastodon instance URL (e.g., https://mastodon.social)
@@ -73,9 +73,9 @@ def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
 
 
 def extract_mastodon_section(notes_path: Path) -> str:
-    """Extract the Mastodon section from Notes.md."""
+    """Extract the Short Social section from Notes.md."""
     content = notes_path.read_text(encoding="utf-8")
-    marker = "## Mastodon"
+    marker = "## Short Social"
     if marker not in content:
         return ""
     prefix, suffix = content.split(marker, 1)
@@ -166,8 +166,8 @@ def main() -> int:
             return 1
         text = extract_mastodon_section(notes_path)
         if not text:
-            print("❌ Mastodon section in Notes.md is empty.")
-            print("   Add a '## Mastodon' section or use --text.")
+            print("❌ Short Social section in Notes.md is empty.")
+            print("   Add a '## Short Social' section or use --text.")
             return 1
 
     # Mastodon default character limit is 500 (can be higher on some instances)

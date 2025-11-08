@@ -2,7 +2,7 @@
 """Publish a post to Bluesky using content from Notes.md.
 
 This script posts to Bluesky using the AT Protocol API. It reads content from
-the "## Bluesky" section in Notes.md or accepts text via --text argument.
+the "## Short Social" section in Notes.md or accepts text via --text argument.
 
 Environment variables:
   BLUESKY_HANDLE - Your Bluesky handle (e.g., username.bsky.social)
@@ -77,9 +77,9 @@ def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
 
 
 def extract_bluesky_section(notes_path: Path) -> str:
-    """Extract the Bluesky section from Notes.md."""
+    """Extract the Short Social section from Notes.md."""
     content = notes_path.read_text(encoding="utf-8")
-    marker = "## Bluesky"
+    marker = "## Short Social"
     if marker not in content:
         return ""
     prefix, suffix = content.split(marker, 1)
@@ -184,8 +184,8 @@ def main() -> int:
             return 1
         text = extract_bluesky_section(notes_path)
         if not text:
-            print("❌ Bluesky section in Notes.md is empty.")
-            print("   Add a '## Bluesky' section or use --text.")
+            print("❌ Short Social section in Notes.md is empty.")
+            print("   Add a '## Short Social' section or use --text.")
             return 1
 
     # Bluesky character limit is 300

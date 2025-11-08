@@ -190,7 +190,7 @@ def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
 
 def extract_linkedin_section(notes_path: Path) -> str:
     content = notes_path.read_text(encoding="utf-8")
-    marker = "## LinkedIn"
+    marker = "## Long Social"
     if marker not in content:
         return ""
     prefix, suffix = content.split(marker, 1)
@@ -218,7 +218,7 @@ def main() -> None:
             raise FileNotFoundError("Notes.md not found. Provide --text or create Notes.md.")
         text = extract_linkedin_section(notes_path)
         if not text:
-            raise ValueError("LinkedIn section in Notes.md is empty. Run prepare_linkedin_post.py first or fill it manually.")
+            raise ValueError("Long Social section in Notes.md is empty. Add a '## Long Social' section or use --text.")
 
     print("LinkedIn copy to publish:\n")
     print(text.strip())

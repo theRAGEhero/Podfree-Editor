@@ -2,7 +2,7 @@
 """Publish a tweet/post to Twitter/X using content from Notes.md.
 
 This script posts to Twitter/X using the Twitter API v2. It reads content from
-the "## Twitter" section in Notes.md or accepts text via --text argument.
+the "## Short Social" section in Notes.md or accepts text via --text argument.
 
 Environment variables:
   TWITTER_API_KEY - Twitter API key (from Developer Portal)
@@ -75,17 +75,14 @@ def find_notes_file(explicit: Optional[str]) -> Optional[Path]:
 
 
 def extract_twitter_section(notes_path: Path) -> str:
-    """Extract the Twitter section from Notes.md."""
+    """Extract the Short Social section from Notes.md."""
     content = notes_path.read_text(encoding="utf-8")
-
-    # Try both "Twitter" and "X" as section markers
-    for marker in ["## Twitter", "## X"]:
-        if marker in content:
-            prefix, suffix = content.split(marker, 1)
-            body = suffix.split("\n##", 1)[0]
-            return body.strip()
-
-    return ""
+    marker = "## Short Social"
+    if marker not in content:
+        return ""
+    prefix, suffix = content.split(marker, 1)
+    body = suffix.split("\n##", 1)[0]
+    return body.strip()
 
 
 def post_to_twitter(
@@ -155,8 +152,8 @@ def main() -> int:
             return 1
         text = extract_twitter_section(notes_path)
         if not text:
-            print("❌ Twitter/X section in Notes.md is empty.")
-            print("   Add a '## Twitter' or '## X' section or use --text.")
+            print("❌ Short Social section in Notes.md is empty.")
+            print("   Add a '## Short Social' section or use --text.")
             return 1
 
     # Check character limit
