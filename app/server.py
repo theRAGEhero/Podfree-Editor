@@ -742,6 +742,80 @@ def run_script_job(job_id: str, script: Path, workspace: Path) -> None:
         refresh_workspace_cache()
 
 
+def auto_process_video(project_dir: Path, video_filename: str) -> None:
+    """Automatically process uploaded video: create proxy, extract audio, transcribe."""
+    logger.info("Auto-processing video: %s in %s", video_filename, project_dir.name)
+
+    # Check if it's a video file
+    video_exts = ('.mp4', '.mov', '.mkv', '.webm', '.avi')
+    video_path = project_dir / video_filename
+    if not video_path.suffix.lower() in video_exts:
+        logger.info("Skipping auto-process - not a video file: %s", video_filename)
+        return
+
+    # Refresh summary to check what already exists
+    summary = summarize_directory(project_dir)
+
+    # 1. Create lightweight video (proxy) if it doesn't exist
+    if not summary['files'].get('proxy'):
+        logger.info("Creating lightweight video for %s", video_filename)
+        # Generate proxy filename
+        stem = video_path.stem
+        proxy_filename = f"{stem}_proxy{video_path.suffix}"
+        proxy_path = project_dir / proxy_filename
+
+        job_id = job_manager.create_job("proxy", f"Auto-create proxy for {video_filename}")
+        thread = threading.Thread(
+            target=run_ffmpeg_proxy,
+            args=(job_id, video_path, proxy_path),
+            daemon=True,
+        )
+        thread.start()
+    else:
+        logger.info("Proxy video already exists, skipping")
+
+    # 2. Extract mp3 if it doesn't exist
+    if not summary['files'].get('audio'):
+        logger.info("Extracting audio from %s", video_filename)
+        script_path = SCRIPTS_DIR / "editing" / "extract_audio_from_video.py"
+        if script_path.is_file():
+            job_id = job_manager.create_job("script", "Auto-extract audio")
+            thread = threading.Thread(
+                target=run_script_job,
+                args=(job_id, script_path, project_dir),
+                daemon=True,
+            )
+            thread.start()
+        else:
+            logger.warning("Audio extraction script not found: %s", script_path)
+    else:
+        logger.info("Audio file already exists, skipping extraction")
+
+    # 3. Run transcription if JSON doesn't exist
+    if not summary['files'].get('transcript_json'):
+        logger.info("Scheduling transcription for %s", video_filename)
+        script_path = SCRIPTS_DIR / "ai-tools" / "deepgram_transcribe_debates.py"
+        if script_path.is_file():
+            # Wait a bit for audio extraction to complete before transcription
+            # We'll create a delayed job
+            def delayed_transcription():
+                time.sleep(10)  # Wait 10 seconds for audio extraction
+                # Re-check if audio now exists
+                updated_summary = summarize_directory(project_dir)
+                if updated_summary['files'].get('audio'):
+                    job_id = job_manager.create_job("script", "Auto-transcribe with Deepgram")
+                    run_script_job(job_id, script_path, project_dir)
+                else:
+                    logger.warning("Audio file still not available, skipping transcription")
+
+            thread = threading.Thread(target=delayed_transcription, daemon=True)
+            thread.start()
+        else:
+            logger.warning("Transcription script not found: %s", script_path)
+    else:
+        logger.info("Transcription already exists, skipping")
+
+
 class PodfreeRequestHandler(SimpleHTTPRequestHandler):
     server_version = "Podfree/1.0"
     protocol_version = "HTTP/1.1"
@@ -1263,6 +1337,14 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                     logger.error("Failed to save upload %s: %s", filename, exc)
                     self._send_json({"error": f"failed to save {filename}: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
                     return
+
+            # Trigger auto-processing for each uploaded video file
+            for filename in saved:
+                threading.Thread(
+                    target=auto_process_video,
+                    args=(project_dir, filename),
+                    daemon=True,
+                ).start()
 
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name

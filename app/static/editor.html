@@ -1238,8 +1238,8 @@
         <span id="duration">--:--:--</span>
       </div>
       <div class="version-toggle" id="version-toggle">
-        <button type="button" class="active" data-role="original">Full Quality</button>
-        <button type="button" data-role="proxy">Lightweight</button>
+        <button type="button" data-role="original">HD</button>
+        <button type="button" class="active" data-role="proxy">SD</button>
       </div>
       <div class="status" id="status-line">No workspace selected. Choose a project first.</div>
     </section>
@@ -1391,7 +1391,7 @@
     let workspaceProjectName = null;
     let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
     let workspaceSources = { original: null, proxy: null };
-    let currentSourceRole = 'original';
+    let currentSourceRole = 'proxy';
     const scriptButtons = new Map();
     const scriptStateCache = { key: null, data: {} };
     let transcriptSource = { kind: null, name: null, url: null };
@@ -2821,7 +2821,7 @@
         },
         { once: true },
       );
-      statusLine.textContent = `Playing ${describe(fileName)} (${currentSourceRole === 'proxy' ? 'Lightweight' : 'Full Quality'})`;
+      statusLine.textContent = `Playing ${describe(fileName)} (${currentSourceRole === 'proxy' ? 'SD' : 'HD'})`;
       updateVersionButtons();
     }
 
@@ -2920,7 +2920,7 @@
         workspaceProjectName = null;
         workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
         workspaceSources = { original: null, proxy: null };
-        currentSourceRole = 'original';
+        currentSourceRole = 'proxy';
       transcriptSource = { kind: null, name: null, url: null };
         guestName = '';
         interviewerName = '';
@@ -3378,13 +3378,6 @@
         const button = event.target.closest('button[data-role]');
         if (!button) return;
         const role = button.dataset.role;
-        if (role === 'proxy' && !workspaceSources.proxy) {
-          const created = await ensureProxyExists();
-          if (created) {
-            configureVideoSource('proxy');
-          }
-          return;
-        }
         configureVideoSource(role);
       });
     }
