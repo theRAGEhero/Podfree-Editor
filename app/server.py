@@ -29,6 +29,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+# Import database module
+try:
+    from database import UserDB
+except ImportError:
+    UserDB = None  # Will be None if bcrypt not installed yet
+
 try:
     import markdown as markdown_lib
 except ImportError:  # pragma: no cover
@@ -47,7 +53,9 @@ STATIC_DIR = APP_DIR / "static"
 SCRIPTS_DIR = ROOT_DIR / "scripts"
 PROJECTS_DIR = ROOT_DIR / "projects"
 TEMPLATES_DIR = ROOT_DIR / "templates"
+DATA_DIR = ROOT_DIR / "data"
 TEMPLATES_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
 NOTES_TEMPLATE_PATH = TEMPLATES_DIR / "Notes-template.md"
 PROJECTS_DIR.mkdir(exist_ok=True)
 
@@ -109,6 +117,19 @@ SESSION_COOKIE_NAME = "podfree_session"
 SESSION_TTL_SECONDS = 12 * 60 * 60
 
 logger.info("Authentication enabled for user %s", AUTH_USERNAME)
+
+# Initialize database
+user_db = None
+if UserDB is not None:
+    try:
+        DB_PATH = DATA_DIR / "podfree.db"
+        user_db = UserDB(DB_PATH)
+        logger.info("Database initialized at %s", DB_PATH)
+    except Exception as e:
+        logger.warning("Database initialization failed: %s (continuing with env-based auth only)", e)
+        user_db = None
+else:
+    logger.warning("Database module not available (bcrypt not installed). Run: pip install bcrypt")
 
 
 
@@ -1164,11 +1185,11 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Set-Cookie", "; ".join(directives))
 
     def _is_public_path(self, path: str) -> bool:
-        if path in {"/login", "/login/", "/login.html"}:
+        if path in {"/login", "/login/", "/login.html", "/register", "/register/", "/register.html"}:
             return True
         if path in {"/favicon.ico", "/favicon.png", "/logo.svg"}:
             return True
-        if path.startswith("/api/login"):
+        if path.startswith("/api/login") or path.startswith("/api/register"):
             return True
         if path.startswith("/api/") or path.startswith("/workspace/"):
             return False
@@ -1368,7 +1389,19 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             data = self._read_json_body()
             username = (data.get("username") or "").strip()
             password = data.get("password") or ""
+
+            # Try env-based auth first (backward compatibility)
+            authenticated = False
             if username == AUTH_USERNAME and password == AUTH_PASSWORD:
+                authenticated = True
+
+            # If not env-based, try database auth
+            if not authenticated and user_db is not None:
+                user = user_db.authenticate(username, password)
+                if user:
+                    authenticated = True
+
+            if authenticated:
                 token = session_manager.create_session(username)
                 payload = {"status": "ok"}
                 body = json.dumps(payload).encode("utf-8")
@@ -1387,6 +1420,79 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+            return
+
+        if path == "/api/register":
+            # Check if database is available
+            if user_db is None:
+                self._send_json(
+                    {"success": False, "error": "Registration not available (database not initialized)"},
+                    status=HTTPStatus.SERVICE_UNAVAILABLE
+                )
+                return
+
+            data = self._read_json_body()
+            username = (data.get("username") or "").strip()
+            email = (data.get("email") or "").strip()
+            password = data.get("password") or ""
+
+            # Validate input
+            if not username or len(username) < 3 or len(username) > 20:
+                self._send_json(
+                    {"success": False, "error": "Username must be 3-20 characters"},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+                return
+
+            if not re.match(r"^[a-zA-Z0-9_]+$", username):
+                self._send_json(
+                    {"success": False, "error": "Username can only contain letters, numbers, and underscores"},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+                return
+
+            if not email or "@" not in email or "." not in email:
+                self._send_json(
+                    {"success": False, "error": "Valid email address required"},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+                return
+
+            if not password or len(password) < 8:
+                self._send_json(
+                    {"success": False, "error": "Password must be at least 8 characters"},
+                    status=HTTPStatus.BAD_REQUEST
+                )
+                return
+
+            # Try to create user
+            try:
+                user_id = user_db.create_user(username, email, password)
+                logger.info("New user registered: %s (ID: %d)", username, user_id)
+
+                # Get user credits
+                credits = user_db.get_user_credits(user_id)
+
+                self._send_json({
+                    "success": True,
+                    "message": "Registration successful",
+                    "user": {
+                        "username": username,
+                        "email": email,
+                        "credits_hours": credits
+                    }
+                })
+            except ValueError as e:
+                self._send_json(
+                    {"success": False, "error": str(e)},
+                    status=HTTPStatus.CONFLICT
+                )
+            except Exception as e:
+                logger.error("Registration failed: %s", e)
+                self._send_json(
+                    {"success": False, "error": "Registration failed. Please try again."},
+                    status=HTTPStatus.INTERNAL_SERVER_ERROR
+                )
             return
 
         if path == "/api/logout":

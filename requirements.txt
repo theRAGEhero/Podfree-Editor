@@ -2,3 +2,4 @@ pillow
 requests
 markdown
 deepgram-sdk
+bcrypt
