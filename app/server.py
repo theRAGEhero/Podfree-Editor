@@ -816,6 +816,283 @@ def auto_process_video(project_dir: Path, video_filename: str) -> None:
         logger.info("Transcription already exists, skipping")
 
 
+def build_segments(edited_words: list[Dict[str, Any]]) -> list[Dict[str, float]]:
+    """Build time segments for words that should be kept (not deleted)."""
+    segments = []
+    current_segment = None
+
+    deleted_count = sum(1 for w in edited_words if w.get('deleted', False))
+    kept_count = len(edited_words) - deleted_count
+
+    logger.info("Building segments from %d words: %d kept, %d deleted", len(edited_words), kept_count, deleted_count)
+
+    for i, word in enumerate(edited_words):
+        is_deleted = word.get('deleted', False)
+
+        if is_deleted:
+            # Word is deleted, close current segment if any
+            if current_segment:
+                segments.append(current_segment)
+                logger.debug("Closed segment at word %d: %.3fs - %.3fs", i, current_segment['start'], current_segment['end'])
+                current_segment = None
+        else:
+            # Word is kept
+            if current_segment is None:
+                # Start new segment
+                current_segment = {
+                    'start': word['start'],
+                    'end': word['end']
+                }
+                logger.debug("Started new segment at word %d: %.3fs", i, word['start'])
+            else:
+                # Extend current segment
+                current_segment['end'] = word['end']
+
+    # Add final segment if exists
+    if current_segment:
+        segments.append(current_segment)
+        logger.debug("Final segment: %.3fs - %.3fs", current_segment['start'], current_segment['end'])
+
+    logger.info("Built %d segments to keep", len(segments))
+
+    # Log segment summary
+    for i, seg in enumerate(segments):
+        duration = seg['end'] - seg['start']
+        logger.info("  Segment %d: %.3fs - %.3fs (duration: %.3fs)", i+1, seg['start'], seg['end'], duration)
+
+    return segments
+
+
+def export_video_ffmpeg(job_id: str, video_path: Path, segments: list[Dict[str, float]], output_path: Path) -> bool:
+    """Export video using FFmpeg, concatenating segments with re-encoding for reliability."""
+    try:
+        if not segments:
+            logger.warning("[job %s] No segments to export", job_id[:8])
+            job_manager.update_job(job_id, status=JobStatus.FAILED, message="No segments to export")
+            return False
+
+        logger.info("[job %s] Starting export with %d segments from %s", job_id[:8], len(segments), video_path.name)
+
+        # If output already exists, remove it
+        if output_path.exists():
+            output_path.unlink()
+            logger.info("[job %s] Removed existing output file: %s", job_id[:8], output_path.name)
+
+        # Create temporary directory for segment files
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            segment_files = []
+
+            # Extract each segment with re-encoding for better compatibility
+            for i, seg in enumerate(segments):
+                segment_file = temp_path / f"segment_{i:04d}.mp4"
+                start_time = seg['start']
+                duration = seg['end'] - seg['start']
+
+                # Use re-encoding instead of copy for reliable concatenation
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_time),
+                    '-i', str(video_path),
+                    '-t', str(duration),
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    str(segment_file)
+                ]
+
+                logger.info("[job %s] Extracting segment %d/%d: %.3fs -> %.3fs (duration: %.3fs)",
+                           job_id[:8], i+1, len(segments), start_time, seg['end'], duration)
+                job_manager.update_job(job_id, progress=(i / len(segments)) * 50,
+                                      message=f"Extracting segment {i+1}/{len(segments)}")
+
+                result = subprocess.run(cmd, capture_output=True, text=True)
+
+                if result.returncode != 0:
+                    logger.error("[job %s] FFmpeg segment extraction error for segment %d:", job_id[:8], i+1)
+                    logger.error("[job %s] Command: %s", job_id[:8], ' '.join(cmd))
+                    logger.error("[job %s] Stderr: %s", job_id[:8], result.stderr)
+                    continue
+
+                # Verify segment was created
+                if segment_file.exists() and segment_file.stat().st_size > 0:
+                    segment_files.append(segment_file)
+                    logger.info("[job %s] ✓ Segment %d created: %.1f KB",
+                               job_id[:8], i+1, segment_file.stat().st_size / 1024)
+                else:
+                    logger.error("[job %s] ✗ Segment %d was not created or is empty", job_id[:8], i+1)
+
+            if not segment_files:
+                logger.error("[job %s] No segments were successfully extracted", job_id[:8])
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Failed to extract segments")
+                return False
+
+            logger.info("[job %s] Successfully extracted %d/%d segments",
+                       job_id[:8], len(segment_files), len(segments))
+
+            # Create concat file with proper format
+            concat_file = temp_path / 'concat.txt'
+            with open(concat_file, 'w') as f:
+                for seg_file in segment_files:
+                    # Use absolute path for concat
+                    f.write(f"file '{seg_file.absolute()}'\n")
+
+            logger.info("[job %s] Created concat file with %d entries", job_id[:8], len(segment_files))
+            job_manager.update_job(job_id, progress=60, message="Concatenating segments")
+
+            # Concatenate segments
+            cmd = [
+                'ffmpeg', '-y',
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', str(concat_file),
+                '-c', 'copy',
+                str(output_path)
+            ]
+
+            logger.info("[job %s] Concatenating segments into %s", job_id[:8], output_path.name)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                logger.error("[job %s] FFmpeg concat error:", job_id[:8])
+                logger.error("[job %s] Command: %s", job_id[:8], ' '.join(cmd))
+                logger.error("[job %s] Stderr: %s", job_id[:8], result.stderr)
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Concatenation failed")
+                return False
+
+            # Verify output file was created
+            if not output_path.exists():
+                logger.error("[job %s] Output file was not created: %s", job_id[:8], output_path)
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Output file not created")
+                return False
+
+            file_size = output_path.stat().st_size
+            logger.info("[job %s] ✓ Export completed successfully: %s (%.2f MB)",
+                       job_id[:8], output_path.name, file_size / (1024*1024))
+            job_manager.update_job(job_id, status=JobStatus.COMPLETED, progress=100.0, message="Export completed")
+            return True
+
+    except Exception as e:
+        logger.error("[job %s] Error exporting video: %s", job_id[:8], e, exc_info=True)
+        job_manager.update_job(job_id, status=JobStatus.FAILED, message=str(e))
+        return False
+
+
+def export_audio_ffmpeg(job_id: str, source_path: Path, segments: list[Dict[str, float]], output_path: Path) -> bool:
+    """Export audio using FFmpeg, concatenating segments."""
+    try:
+        if not segments:
+            logger.warning("[job %s] No segments to export", job_id[:8])
+            job_manager.update_job(job_id, status=JobStatus.FAILED, message="No segments to export")
+            return False
+
+        logger.info("[job %s] Starting audio export with %d segments from %s",
+                   job_id[:8], len(segments), source_path.name)
+
+        # If output already exists, remove it
+        if output_path.exists():
+            output_path.unlink()
+            logger.info("[job %s] Removed existing output file: %s", job_id[:8], output_path.name)
+
+        # Create temporary directory for segment files
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            segment_files = []
+
+            # Extract each audio segment
+            for i, seg in enumerate(segments):
+                segment_file = temp_path / f"segment_{i:04d}.mp3"
+                start_time = seg['start']
+                duration = seg['end'] - seg['start']
+
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_time),
+                    '-i', str(source_path),
+                    '-t', str(duration),
+                    '-vn',  # No video
+                    '-c:a', 'libmp3lame',
+                    '-b:a', '192k',
+                    str(segment_file)
+                ]
+
+                logger.info("[job %s] Extracting audio segment %d/%d: %.3fs -> %.3fs",
+                           job_id[:8], i+1, len(segments), start_time, seg['end'])
+                job_manager.update_job(job_id, progress=(i / len(segments)) * 50,
+                                      message=f"Extracting segment {i+1}/{len(segments)}")
+
+                result = subprocess.run(cmd, capture_output=True, text=True)
+
+                if result.returncode != 0:
+                    logger.error("[job %s] FFmpeg audio extraction error for segment %d", job_id[:8], i+1)
+                    logger.error("[job %s] Stderr: %s", job_id[:8], result.stderr)
+                    continue
+
+                if segment_file.exists() and segment_file.stat().st_size > 0:
+                    segment_files.append(segment_file)
+                    logger.info("[job %s] ✓ Audio segment %d created: %.1f KB",
+                               job_id[:8], i+1, segment_file.stat().st_size / 1024)
+                else:
+                    logger.error("[job %s] ✗ Audio segment %d was not created or is empty", job_id[:8], i+1)
+
+            if not segment_files:
+                logger.error("[job %s] No audio segments were successfully extracted", job_id[:8])
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Failed to extract segments")
+                return False
+
+            logger.info("[job %s] Successfully extracted %d/%d audio segments",
+                       job_id[:8], len(segment_files), len(segments))
+
+            # Create concat file
+            concat_file = temp_path / 'concat.txt'
+            with open(concat_file, 'w') as f:
+                for seg_file in segment_files:
+                    f.write(f"file '{seg_file.absolute()}'\n")
+
+            logger.info("[job %s] Created concat file with %d entries", job_id[:8], len(segment_files))
+            job_manager.update_job(job_id, progress=60, message="Concatenating audio segments")
+
+            # Concatenate audio segments
+            cmd = [
+                'ffmpeg', '-y',
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', str(concat_file),
+                '-c', 'copy',
+                str(output_path)
+            ]
+
+            logger.info("[job %s] Concatenating audio segments into %s", job_id[:8], output_path.name)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                logger.error("[job %s] FFmpeg audio concat error:", job_id[:8])
+                logger.error("[job %s] Stderr: %s", job_id[:8], result.stderr)
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Concatenation failed")
+                return False
+
+            if not output_path.exists():
+                logger.error("[job %s] Output file was not created: %s", job_id[:8], output_path)
+                job_manager.update_job(job_id, status=JobStatus.FAILED, message="Output file not created")
+                return False
+
+            file_size = output_path.stat().st_size
+            logger.info("[job %s] ✓ Audio export completed successfully: %s (%.2f MB)",
+                       job_id[:8], output_path.name, file_size / (1024*1024))
+            job_manager.update_job(job_id, status=JobStatus.COMPLETED, progress=100.0, message="Export completed")
+            return True
+
+    except Exception as e:
+        logger.error("[job %s] Error exporting audio: %s", job_id[:8], e, exc_info=True)
+        job_manager.update_job(job_id, status=JobStatus.FAILED, message=str(e))
+        return False
+
+
 class PodfreeRequestHandler(SimpleHTTPRequestHandler):
     server_version = "Podfree/1.0"
     protocol_version = "HTTP/1.1"
@@ -1515,6 +1792,128 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             content = data.get("content", "")
             html = render_markdown(content)
             self._send_json({"html": html})
+            return
+
+        if path == "/api/export-video":
+            if WORKSPACE_DIR is None:
+                logger.warning("Video export requested without workspace")
+                self._send_json({"error": "workspace not set"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            data = self._read_json_body()
+            video_file = data.get("videoFile")
+            edited_words = data.get("editedWords", [])
+
+            if not video_file:
+                self._send_json({"error": "videoFile required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not edited_words:
+                self._send_json({"error": "editedWords array required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                video_path = workspace_path_from_name(video_file)
+            except Exception as exc:
+                logger.error("Invalid video file path: %s", exc)
+                self._send_json({"error": f"Invalid video file: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not video_path.exists():
+                self._send_json({"error": "Video file not found"}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            logger.info("Starting video export of %s with %d words", video_file, len(edited_words))
+
+            # Build segments to keep (non-deleted words)
+            segments = build_segments(edited_words)
+
+            if not segments:
+                self._send_json({"error": "No segments to export - all words deleted?"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            # Generate output filename
+            stem = video_path.stem
+            output_filename = f"{stem}_edited.mp4"
+            output_path = WORKSPACE_DIR / output_filename
+
+            # Create job and run export in background thread
+            job_id = job_manager.create_job("export", f"Export edited video: {video_file}")
+
+            def run_export():
+                success = export_video_ffmpeg(job_id, video_path, segments, output_path)
+                if success:
+                    refresh_workspace_cache()
+
+            thread = threading.Thread(target=run_export, daemon=True)
+            thread.start()
+
+            self._send_json({
+                "status": "started",
+                "job_id": job_id,
+                "output_file": output_filename
+            })
+            return
+
+        if path == "/api/export-audio":
+            if WORKSPACE_DIR is None:
+                logger.warning("Audio export requested without workspace")
+                self._send_json({"error": "workspace not set"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            data = self._read_json_body()
+            source_file = data.get("sourceFile")  # Can be video or audio
+            edited_words = data.get("editedWords", [])
+
+            if not source_file:
+                self._send_json({"error": "sourceFile required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not edited_words:
+                self._send_json({"error": "editedWords array required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                source_path = workspace_path_from_name(source_file)
+            except Exception as exc:
+                logger.error("Invalid source file path: %s", exc)
+                self._send_json({"error": f"Invalid source file: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not source_path.exists():
+                self._send_json({"error": "Source file not found"}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            logger.info("Starting audio export from %s with %d words", source_file, len(edited_words))
+
+            # Build segments to keep (non-deleted words)
+            segments = build_segments(edited_words)
+
+            if not segments:
+                self._send_json({"error": "No segments to export - all words deleted?"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            # Generate output filename
+            stem = source_path.stem
+            output_filename = f"{stem}_edited.mp3"
+            output_path = WORKSPACE_DIR / output_filename
+
+            # Create job and run export in background thread
+            job_id = job_manager.create_job("export", f"Export edited audio: {source_file}")
+
+            def run_export():
+                success = export_audio_ffmpeg(job_id, source_path, segments, output_path)
+                if success:
+                    refresh_workspace_cache()
+
+            thread = threading.Thread(target=run_export, daemon=True)
+            thread.start()
+
+            self._send_json({
+                "status": "started",
+                "job_id": job_id,
+                "output_file": output_filename
+            })
             return
 
         self._send_json({"error": "not found"}, status=HTTPStatus.NOT_FOUND)

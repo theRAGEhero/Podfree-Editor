@@ -433,6 +433,161 @@
       background: rgba(148, 163, 184, 0.16);
     }
 
+    /* Word-level editing styles */
+    .transcript-entry .word {
+      display: inline;
+      padding: 2px 1px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-radius: 3px;
+      user-select: none;
+    }
+
+    .transcript-entry .word:hover {
+      background: rgba(148, 163, 184, 0.3);
+    }
+
+    .transcript-entry .word.active {
+      background: #2563eb;
+      color: white;
+      padding: 3px 5px;
+      font-weight: 500;
+    }
+
+    .transcript-entry .word.selected {
+      background: #7c3aed;
+      color: white;
+      padding: 3px 5px;
+      font-weight: 500;
+    }
+
+    .transcript-entry .word.deleted {
+      text-decoration: line-through;
+      opacity: 0.4;
+      color: #ef4444;
+    }
+
+    .transcript-scroll.selecting .transcript-entry .word {
+      cursor: text;
+    }
+
+    /* Edit controls styling */
+    .edit-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .edit-controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .edit-controls input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    .edit-controls .btn-icon {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .edit-controls .btn-icon:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .edit-controls .btn-icon:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .edit-controls .btn-restore {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .edit-controls .btn-restore:hover {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+
+    .edit-controls .btn-skip {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 6px;
+      color: #fbbf24;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .edit-controls .btn-skip:hover {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: #fbbf24;
+      color: #fcd34d;
+    }
+
+    .edit-controls .btn-skip:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .edit-controls .btn-export {
+      padding: 6px 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 6px;
+      color: #3b82f6;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .edit-controls .btn-export:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    .edit-controls .btn-export:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .edit-controls .stats {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
     video {
       width: 100%;
       border-radius: 16px;
@@ -1248,6 +1403,18 @@
         <h2>Transcript</h2>
         <span id="transcript-status" class="status-badge">Idle</span>
       </div>
+      <div class="edit-controls">
+        <label>
+          <input type="checkbox" id="selection-mode-toggle">
+          Selection Mode
+        </label>
+        <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled>✕</button>
+        <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>Restore Selected</button>
+        <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
+        <button type="button" id="export-video-btn" class="btn-export" title="Export edited video">Export Video</button>
+        <button type="button" id="export-audio-btn" class="btn-export" title="Export edited audio">Export Audio</button>
+        <span id="word-stats" class="stats"></span>
+      </div>
       <div id="transcript" class="transcript-scroll">
         <p>Open a project with a transcript to preview it here.</p>
       </div>
@@ -1373,6 +1540,15 @@
     const logoutLink = document.getElementById('logout-link');
     const fileManagerButton = document.getElementById('file-manager-button');
     const fileManagerModal = document.getElementById('file-manager-modal');
+
+    // Edit controls
+    const selectionModeToggle = document.getElementById('selection-mode-toggle');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const restoreSelectedBtn = document.getElementById('restore-selected-btn');
+    const skipDeletedBtn = document.getElementById('skip-deleted-btn');
+    const exportVideoBtn = document.getElementById('export-video-btn');
+    const exportAudioBtn = document.getElementById('export-audio-btn');
+    const wordStatsEl = document.getElementById('word-stats');
     const fileManagerClose = document.getElementById('file-manager-close');
     const fileManagerRows = document.getElementById('file-manager-rows');
     const fileManagerStatus = document.getElementById('file-manager-status');
@@ -1397,6 +1573,12 @@
     let transcriptSource = { kind: null, name: null, url: null };
     let wordSpans = [];
     let activeWordIndex = -1;
+    let selectionMode = false;
+    let selectedWords = new Set();
+    let deletedWords = new Set();
+    let playbackTrackingInterval = null;
+    let userIsScrolling = false;
+    let scrollTimeout = null;
     let lastNotesContent = null;
     let guestName = '';
     let interviewerName = '';
@@ -1568,6 +1750,56 @@
     }
 
     document.addEventListener('keydown', (event) => {
+      // Word editing keyboard shortcuts
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        // Space: toggle play/pause (when not in input field)
+        if (event.key === ' ' && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+          event.preventDefault();
+          if (media.paused) {
+            media.play().catch(() => {});
+          } else {
+            media.pause();
+          }
+          return;
+        }
+
+        // Delete/Backspace: toggle delete word under cursor
+        if ((event.key === 'Delete' || event.key === 'Backspace') && activeWordIndex >= 0 && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+          event.preventDefault();
+          toggleWordDeleted(activeWordIndex);
+          return;
+        }
+
+        // ArrowLeft/ArrowRight: navigate words
+        if (event.key === 'ArrowLeft' && activeWordIndex > 0 && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+          event.preventDefault();
+          // Re-enable auto-scroll when using arrow keys
+          userIsScrolling = false;
+          if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = null;
+          }
+          const prevIndex = activeWordIndex - 1;
+          media.currentTime = Math.max(0, wordSpans[prevIndex].start - SEEK_EPSILON);
+          highlightWordByIndex(prevIndex);
+          return;
+        }
+        if (event.key === 'ArrowRight' && activeWordIndex < wordSpans.length - 1 && !['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+          event.preventDefault();
+          // Re-enable auto-scroll when using arrow keys
+          userIsScrolling = false;
+          if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = null;
+          }
+          const nextIndex = activeWordIndex + 1;
+          media.currentTime = Math.max(0, wordSpans[nextIndex].start - SEEK_EPSILON);
+          highlightWordByIndex(nextIndex);
+          return;
+        }
+      }
+
+      // Escape key for modals
       if (event.key !== 'Escape') return;
       if (coverPreviewModal && !coverPreviewModal.classList.contains('hidden')) {
         closeCoverPreview();
@@ -2333,8 +2565,23 @@
         return;
       }
       transcriptStatus.textContent = 'Ready';
+
+      // Clean up state
       wordSpans = [];
       activeWordIndex = -1;
+      selectedWords.clear();
+      deletedWords.clear();
+      stopPlaybackTracking();
+      userIsScrolling = false;
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+      }
+      if (selectionMode) {
+        selectionMode = false;
+        if (selectionModeToggle) selectionModeToggle.checked = false;
+      }
+      updateWordStats();
       const sorted = [...segments].sort((a, b) => {
         const aSec = Number(a.seconds ?? Number.MAX_VALUE);
         const bSec = Number(b.seconds ?? Number.MAX_VALUE);
@@ -2406,9 +2653,19 @@
           span.dataset.start = String(wordStart);
           span.title = `Seek to ${formatTime(wordStart)}`;
           span.addEventListener('click', () => {
-            media.currentTime = Math.max(0, wordStart - SEEK_EPSILON);
-            highlightWordByIndex(index);
-            media.play().catch(() => {});
+            if (selectionMode) {
+              toggleWordSelection(index);
+            } else {
+              // Re-enable auto-scroll when user clicks a word to seek
+              userIsScrolling = false;
+              if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = null;
+              }
+              media.currentTime = Math.max(0, wordStart - SEEK_EPSILON);
+              highlightWordByIndex(index);
+              media.play().catch(() => {});
+            }
           });
           paragraph.appendChild(span);
           wordIndex += 1;
@@ -2431,7 +2688,10 @@
       const entry = wordSpans[index];
       entry.element.classList.add('active');
       activeWordIndex = index;
-      if (!transcriptEl) return;
+
+      // Skip auto-scroll if user is manually scrolling
+      if (!transcriptEl || userIsScrolling) return;
+
       const containerRect = transcriptEl.getBoundingClientRect();
       const spanRect = entry.element.getBoundingClientRect();
       const offset = 48;
@@ -2486,6 +2746,264 @@
       }
       if (found !== -1) {
         highlightWordByIndex(found);
+      }
+    }
+
+    // Word editing functions
+    function updateWordStats() {
+      if (!wordStatsEl) return;
+      const total = wordSpans.length;
+      const deleted = deletedWords.size;
+      const selected = selectedWords.size;
+      wordStatsEl.textContent = `${total} words • ${deleted} deleted • ${selected} selected`;
+    }
+
+    function toggleSelectionMode() {
+      selectionMode = !selectionMode;
+      if (!selectionMode) {
+        // Clear selections when exiting selection mode
+        selectedWords.forEach(index => {
+          if (wordSpans[index]) {
+            wordSpans[index].element.classList.remove('selected');
+          }
+        });
+        selectedWords.clear();
+        if (deleteSelectedBtn) deleteSelectedBtn.disabled = true;
+        if (restoreSelectedBtn) restoreSelectedBtn.disabled = true;
+      }
+      updateWordStats();
+    }
+
+    function toggleWordSelection(index) {
+      if (!selectionMode) return;
+      if (selectedWords.has(index)) {
+        selectedWords.delete(index);
+        wordSpans[index].element.classList.remove('selected');
+      } else {
+        selectedWords.add(index);
+        wordSpans[index].element.classList.add('selected');
+      }
+
+      // Update button states
+      if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = selectedWords.size === 0;
+      }
+      if (restoreSelectedBtn) {
+        // Enable restore button only if there are selected words that are deleted
+        const hasDeletedSelected = Array.from(selectedWords).some(idx => deletedWords.has(idx));
+        restoreSelectedBtn.disabled = !hasDeletedSelected;
+      }
+
+      updateWordStats();
+    }
+
+    function toggleWordDeleted(index) {
+      if (deletedWords.has(index)) {
+        deletedWords.delete(index);
+        wordSpans[index].element.classList.remove('deleted');
+      } else {
+        deletedWords.add(index);
+        wordSpans[index].element.classList.add('deleted');
+      }
+
+      // Update restore button state if in selection mode
+      if (selectionMode && restoreSelectedBtn) {
+        const hasDeletedSelected = Array.from(selectedWords).some(idx => deletedWords.has(idx));
+        restoreSelectedBtn.disabled = !hasDeletedSelected;
+      }
+
+      updateWordStats();
+    }
+
+    function deleteSelectedWords() {
+      if (selectedWords.size === 0) return;
+      selectedWords.forEach(index => {
+        deletedWords.add(index);
+        wordSpans[index].element.classList.remove('selected');
+        wordSpans[index].element.classList.add('deleted');
+      });
+      selectedWords.clear();
+      if (deleteSelectedBtn) deleteSelectedBtn.disabled = true;
+      updateWordStats();
+    }
+
+    function restoreSelectedWords() {
+      if (selectedWords.size === 0) return;
+      selectedWords.forEach(index => {
+        if (deletedWords.has(index)) {
+          deletedWords.delete(index);
+          wordSpans[index].element.classList.remove('deleted');
+        }
+        wordSpans[index].element.classList.remove('selected');
+      });
+      selectedWords.clear();
+      if (restoreSelectedBtn) restoreSelectedBtn.disabled = true;
+      updateWordStats();
+    }
+
+    function getEditedWords() {
+      return wordSpans.map((entry, index) => ({
+        word: entry.element.textContent,
+        start: entry.start,
+        end: entry.end,
+        deleted: deletedWords.has(index)
+      }));
+    }
+
+    async function exportEditedVideo() {
+      if (!workspaceFiles.video) {
+        alert('No video file available for export');
+        return;
+      }
+
+      const editedWords = getEditedWords();
+      const deletedCount = deletedWords.size;
+
+      if (deletedCount === 0) {
+        if (!confirm('No words have been deleted. Export original video anyway?')) {
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch('/api/export-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoFile: workspaceFiles.video,
+            editedWords: editedWords
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Export failed');
+        }
+
+        alert(`Export started! Job ID: ${data.job_id}\nOutput: ${data.output_file}\n\nCheck the Jobs section for progress.`);
+
+        // Refresh workspace after a delay to show the new file
+        setTimeout(() => {
+          loadWorkspace();
+        }, 3000);
+      } catch (error) {
+        console.error('Export error:', error);
+        alert(`Export failed: ${error.message}`);
+      }
+    }
+
+    async function exportEditedAudio() {
+      const sourceFile = workspaceFiles.audio || workspaceFiles.video;
+      if (!sourceFile) {
+        alert('No audio or video file available for export');
+        return;
+      }
+
+      const editedWords = getEditedWords();
+      const deletedCount = deletedWords.size;
+
+      if (deletedCount === 0) {
+        if (!confirm('No words have been deleted. Export original audio anyway?')) {
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch('/api/export-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceFile: sourceFile,
+            editedWords: editedWords
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Export failed');
+        }
+
+        alert(`Audio export started! Job ID: ${data.job_id}\nOutput: ${data.output_file}\n\nCheck the Jobs section for progress.`);
+
+        // Refresh workspace after a delay to show the new file
+        setTimeout(() => {
+          loadWorkspace();
+        }, 3000);
+      } catch (error) {
+        console.error('Export error:', error);
+        alert(`Audio export failed: ${error.message}`);
+      }
+    }
+
+    // Real-time preview: skip deleted words during playback
+    function startPlaybackTracking() {
+      if (playbackTrackingInterval) return; // Already tracking
+
+      playbackTrackingInterval = setInterval(() => {
+        if (media.paused) return;
+
+        const currentTime = media.currentTime;
+
+        // Find the current word (if any)
+        const currentWordIndex = wordSpans.findIndex(w =>
+          currentTime >= w.start && currentTime < w.end
+        );
+
+        // Check if we're on a deleted word
+        if (currentWordIndex >= 0 && deletedWords.has(currentWordIndex)) {
+          skipToNextNonDeleted();
+          return;
+        }
+
+        // Also check if we're approaching a deleted word
+        // Find the next upcoming word
+        const nextWordIndex = wordSpans.findIndex(w => w.start > currentTime);
+
+        // If the next word is deleted and very close (within 0.1s), skip to next non-deleted
+        if (nextWordIndex >= 0 && deletedWords.has(nextWordIndex)) {
+          const nextWord = wordSpans[nextWordIndex];
+          if ((nextWord.start - currentTime) < 0.1) {
+            skipToNextNonDeleted();
+            return;
+          }
+        }
+
+        // Check if we've passed all kept words
+        let lastKeptIndex = -1;
+        for (let i = wordSpans.length - 1; i >= 0; i--) {
+          if (!deletedWords.has(i)) {
+            lastKeptIndex = i;
+            break;
+          }
+        }
+
+        if (lastKeptIndex >= 0 && currentTime > wordSpans[lastKeptIndex].end) {
+          // We're past all kept content, pause the video
+          media.pause();
+        }
+      }, 50); // Check every 50ms
+    }
+
+    function stopPlaybackTracking() {
+      if (playbackTrackingInterval) {
+        clearInterval(playbackTrackingInterval);
+        playbackTrackingInterval = null;
+      }
+    }
+
+    function skipToNextNonDeleted() {
+      const currentTime = media.currentTime;
+
+      // Find the next non-deleted word
+      const nextWordIndex = wordSpans.findIndex((w, idx) =>
+        w.start > currentTime && !deletedWords.has(idx)
+      );
+
+      if (nextWordIndex >= 0) {
+        media.currentTime = wordSpans[nextWordIndex].start;
+      } else {
+        // No more non-deleted words - pause at end of edited content
+        media.pause();
       }
     }
 
@@ -3385,6 +3903,61 @@
     media.addEventListener('timeupdate', updateCurrentTime);
     media.addEventListener('seeked', updateCurrentTime);
     media.addEventListener('loadeddata', updateCurrentTime);
+
+    // Start/stop playback tracking for skipping deleted words
+    media.addEventListener('play', () => {
+      startPlaybackTracking();
+    });
+
+    media.addEventListener('pause', () => {
+      stopPlaybackTracking();
+    });
+
+    // Detect manual scrolling in transcript
+    if (transcriptEl) {
+      transcriptEl.addEventListener('scroll', () => {
+        // User is manually scrolling
+        userIsScrolling = true;
+
+        // Clear any existing timeout
+        if (scrollTimeout) {
+          clearTimeout(scrollTimeout);
+        }
+
+        // Re-enable auto-scroll after 3 seconds of no scrolling
+        scrollTimeout = setTimeout(() => {
+          userIsScrolling = false;
+        }, 3000);
+      }, { passive: true });
+    }
+
+    // Edit control event listeners
+    if (selectionModeToggle) {
+      selectionModeToggle.addEventListener('change', () => {
+        toggleSelectionMode();
+        selectionModeToggle.parentElement.style.fontWeight = selectionMode ? 'bold' : 'normal';
+      });
+    }
+
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.addEventListener('click', deleteSelectedWords);
+    }
+
+    if (restoreSelectedBtn) {
+      restoreSelectedBtn.addEventListener('click', restoreSelectedWords);
+    }
+
+    if (skipDeletedBtn) {
+      skipDeletedBtn.addEventListener('click', skipToNextNonDeleted);
+    }
+
+    if (exportVideoBtn) {
+      exportVideoBtn.addEventListener('click', exportEditedVideo);
+    }
+
+    if (exportAudioBtn) {
+      exportAudioBtn.addEventListener('click', exportEditedAudio);
+    }
 
     if (titleForm) {
       titleForm.addEventListener('submit', async (event) => {
