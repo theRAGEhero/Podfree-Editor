@@ -18,6 +18,11 @@ venv/
 .mypy_cache/
 .pytest_cache/
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
 # OS junk
 .DS_Store
 
