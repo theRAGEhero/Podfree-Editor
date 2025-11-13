@@ -1218,11 +1218,11 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Set-Cookie", "; ".join(directives))
 
     def _is_public_path(self, path: str) -> bool:
-        if path in {"/login", "/login/", "/login.html", "/register", "/register/", "/register.html"}:
+        if path in {"/login", "/login/", "/login.html", "/register", "/register/", "/register.html", "/about.html"}:
             return True
         if path in {"/favicon.ico", "/favicon.png", "/logo.svg"}:
             return True
-        if path.startswith("/api/login") or path.startswith("/api/register"):
+        if path.startswith("/api/login") or path.startswith("/api/register") or path.startswith("/api/contact"):
             return True
         if path.startswith("/api/") or path.startswith("/workspace/"):
             return False
