@@ -2804,6 +2804,7 @@
       });
       transcriptEl.textContent = '';
       transcriptEl.appendChild(fragment);
+      updateStatusLine();
     }
 
     function highlightWordByIndex(index) {
@@ -2997,6 +2998,7 @@
           audioExportCompleted = false;
           updateExportButtonStyles();
         }
+        updateStatusLine();
         return;
       }
       for (const index of deletedWords) {
@@ -3008,6 +3010,7 @@
             audioExportCompleted = false;
             updateExportButtonStyles();
           }
+          updateStatusLine();
           return;
         }
       }
@@ -3310,12 +3313,15 @@
           // Update UI to reflect loaded edits
           updateDeletedWordsUI();
           updateWordStats();
+          updateStatusLine();
+          updateEditedDuration();
 
           console.log(`Loaded ${data.deletedIndices.length} deleted word indices`);
         } else {
           console.log('No saved edits found for this transcript');
           savedDeletedWords = new Set();
           hasUnsavedChanges = false;
+          updateStatusLine();
         }
       } catch (error) {
         console.error('Load edits error:', error);
@@ -3686,6 +3692,7 @@
         currentTimeEl.textContent = formatTime(media.currentTime || 0);
       }
       updateActiveWord(media.currentTime || 0);
+      updateEditedDuration();
 
       // Auto-skip deleted words during playback
       if (!media.paused && wordSpans.length > 0) {
@@ -3709,6 +3716,43 @@
             media.pause();
           }
         }
+      }
+    }
+
+    function updateEditedDuration() {
+      if (!durationEl || wordSpans.length === 0) return;
+
+      let totalDuration = 0;
+      let deletedDuration = 0;
+
+      wordSpans.forEach((word, index) => {
+        const duration = word.end - word.start;
+        totalDuration += duration;
+        if (deletedWords.has(index)) {
+          deletedDuration += duration;
+        }
+      });
+
+      const editedDuration = totalDuration - deletedDuration;
+      durationEl.textContent = formatTime(editedDuration);
+    }
+
+    function updateStatusLine() {
+      if (!statusLine) return;
+
+      if (wordSpans.length === 0) {
+        statusLine.textContent = 'No transcript loaded';
+        return;
+      }
+
+      const totalWords = wordSpans.length;
+      const deletedCount = deletedWords.size;
+
+      if (deletedCount === 0) {
+        statusLine.textContent = `Editing: ${totalWords} words (no edits yet)`;
+      } else {
+        const percentage = Math.round((deletedCount / totalWords) * 100);
+        statusLine.textContent = `Edited video: ${deletedCount} words removed (${percentage}% cut)`;
       }
     }
 
@@ -3766,7 +3810,7 @@
         },
         { once: true },
       );
-      statusLine.textContent = `Playing ${describe(fileName)} (${currentSourceRole === 'proxy' ? 'SD' : 'HD'})`;
+      updateStatusLine();
       updateVersionButtons();
     }
 
