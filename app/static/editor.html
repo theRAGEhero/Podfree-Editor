@@ -497,6 +497,30 @@
       cursor: pointer;
     }
 
+    .edit-controls .btn-select {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .edit-controls .btn-select:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+
+    .edit-controls .btn-select.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+
     .edit-controls .btn-icon {
       padding: 6px 10px;
       background: transparent;
@@ -700,35 +724,43 @@
 
 
     .version-toggle {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
       display: inline-flex;
-      background: rgba(148, 163, 184, 0.16);
-      border-radius: 999px;
-      padding: 0.4rem;
-      gap: 0.4rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 6px;
+      padding: 0.25rem;
+      gap: 0.25rem;
+      z-index: 10;
+      border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .version-toggle button {
       border: none;
-      border-radius: 999px;
-      padding: 0.4rem 1rem;
+      border-radius: 4px;
+      padding: 0.35rem 0.65rem;
       background: transparent;
       color: var(--muted);
-      font-size: 0.82rem;
-      letter-spacing: 0.06em;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: background-color 0.2s ease, color 0.2s ease;
+      transition: all 0.2s ease;
+      font-weight: 500;
     }
 
     .version-toggle button:hover {
-      background: rgba(148, 163, 184, 0.22);
+      background: rgba(148, 163, 184, 0.25);
+      color: rgba(241, 245, 249, 0.95);
     }
 
     .version-toggle button.active {
       background: var(--accent);
       color: #0b1120;
       font-weight: 600;
-      box-shadow: 0 8px 18px rgba(56, 189, 248, 0.2);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
     }
 
     .version-toggle button.pending {
@@ -1437,10 +1469,7 @@
         <span id="transcript-status" class="status-badge">Idle</span>
       </div>
       <div class="edit-controls">
-        <label>
-          <input type="checkbox" id="selection-mode-toggle">
-          <span style="cursor: default;">🖱️ Select Mode</span>
-        </label>
+        <button type="button" id="selection-mode-btn" class="btn-select" title="Toggle selection mode">🖱️</button>
         <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
         <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
         <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
@@ -1514,6 +1543,22 @@
     </div>
   </div>
 
+  <div id="unsaved-changes-modal" class="file-modal hidden" role="dialog" aria-modal="true" style="z-index: 10000;">
+    <div class="file-modal-dialog" style="max-width: 400px;">
+      <div class="file-modal-header">
+        <h2>Unsaved Changes</h2>
+      </div>
+      <div class="file-modal-body" style="padding: 1.5rem;">
+        <p style="margin: 0 0 1.5rem 0; color: var(--text);">You have unsaved transcript edits. What would you like to do?</p>
+        <div style="display: flex; gap: 0.75rem; flex-direction: column;">
+          <button type="button" id="unsaved-save-btn" class="btn-save" style="width: 100%; padding: 0.75rem;">💾 Save and Continue</button>
+          <button type="button" id="unsaved-discard-btn" style="width: 100%; padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444; cursor: pointer;">Don't Save</button>
+          <button type="button" id="unsaved-cancel-btn" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; color: var(--muted); cursor: pointer;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     function redirectToLogin() {
       const current = window.location.pathname + window.location.search;
@@ -1578,7 +1623,7 @@
     const fileManagerModal = document.getElementById('file-manager-modal');
 
     // Edit controls
-    const selectionModeToggle = document.getElementById('selection-mode-toggle');
+    const selectionModeBtn = document.getElementById('selection-mode-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     const restoreSelectedBtn = document.getElementById('restore-selected-btn');
     const skipDeletedBtn = document.getElementById('skip-deleted-btn');
@@ -1586,6 +1631,10 @@
     const exportVideoBtn = document.getElementById('export-video-btn');
     const exportAudioBtn = document.getElementById('export-audio-btn');
     const wordStatsEl = document.getElementById('word-stats');
+    const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+    const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
+    const unsavedDiscardBtn = document.getElementById('unsaved-discard-btn');
+    const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
     const fileManagerClose = document.getElementById('file-manager-close');
     const fileManagerRows = document.getElementById('file-manager-rows');
     const fileManagerStatus = document.getElementById('file-manager-status');
@@ -2618,7 +2667,7 @@
       }
       if (selectionMode) {
         selectionMode = false;
-        if (selectionModeToggle) selectionModeToggle.checked = false;
+        if (selectionModeBtn) selectionModeBtn.classList.remove('active');
       }
       updateWordStats();
       const sorted = [...segments].sort((a, b) => {
@@ -2923,6 +2972,9 @@
       }
 
       try {
+        exportVideoBtn.disabled = true;
+        exportVideoBtn.textContent = 'Starting Export...';
+
         const response = await fetch('/api/export-video', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2937,15 +2989,35 @@
           throw new Error(data.error || 'Export failed');
         }
 
-        alert(`Export started! Job ID: ${data.job_id}\nOutput: ${data.output_file}\n\nCheck the Jobs section for progress.`);
+        exportVideoBtn.textContent = 'Export Video';
 
-        // Refresh workspace after a delay to show the new file
-        setTimeout(() => {
-          loadWorkspace();
-        }, 3000);
+        const card = addJobCard(data.job_id, `Export Video`);
+        const job = await waitForJob(data.job_id, (update) => {
+          card.status.textContent = `${update.status} — ${update.message || ''}`;
+          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
+          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
+
+          // Display percentage and estimated time
+          let progressText = `${Math.round(progress)}%`;
+          if (update.eta) {
+            progressText += ` • ETA: ${update.eta}`;
+          }
+          card.progressInfo.textContent = progressText;
+        });
+
+        if (job.status === 'completed') {
+          alert(`Video export completed! Output: ${data.output_file}`);
+        } else {
+          alert(`Video export failed: ${job.message || 'Unknown error'}`);
+        }
+
+        await loadWorkspace();
       } catch (error) {
         console.error('Export error:', error);
         alert(`Export failed: ${error.message}`);
+      } finally {
+        exportVideoBtn.disabled = false;
+        exportVideoBtn.textContent = 'Export Video';
       }
     }
 
@@ -2966,6 +3038,9 @@
       }
 
       try {
+        exportAudioBtn.disabled = true;
+        exportAudioBtn.textContent = 'Starting Export...';
+
         const response = await fetch('/api/export-audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2980,15 +3055,35 @@
           throw new Error(data.error || 'Export failed');
         }
 
-        alert(`Audio export started! Job ID: ${data.job_id}\nOutput: ${data.output_file}\n\nCheck the Jobs section for progress.`);
+        exportAudioBtn.textContent = 'Export Audio';
 
-        // Refresh workspace after a delay to show the new file
-        setTimeout(() => {
-          loadWorkspace();
-        }, 3000);
+        const card = addJobCard(data.job_id, `Export Audio`);
+        const job = await waitForJob(data.job_id, (update) => {
+          card.status.textContent = `${update.status} — ${update.message || ''}`;
+          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
+          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
+
+          // Display percentage and estimated time
+          let progressText = `${Math.round(progress)}%`;
+          if (update.eta) {
+            progressText += ` • ETA: ${update.eta}`;
+          }
+          card.progressInfo.textContent = progressText;
+        });
+
+        if (job.status === 'completed') {
+          alert(`Audio export completed! Output: ${data.output_file}`);
+        } else {
+          alert(`Audio export failed: ${job.message || 'Unknown error'}`);
+        }
+
+        await loadWorkspace();
       } catch (error) {
         console.error('Export error:', error);
         alert(`Audio export failed: ${error.message}`);
+      } finally {
+        exportAudioBtn.disabled = false;
+        exportAudioBtn.textContent = 'Export Audio';
       }
     }
 
@@ -3684,6 +3779,13 @@
       status.textContent = 'queued';
       wrapper.appendChild(status);
 
+      const progressInfo = document.createElement('div');
+      progressInfo.className = 'job-progress-info';
+      progressInfo.style.fontSize = '0.75rem';
+      progressInfo.style.color = 'var(--muted)';
+      progressInfo.style.marginTop = '0.2rem';
+      wrapper.appendChild(progressInfo);
+
       const progressBar = document.createElement('div');
       progressBar.className = 'job-progress';
       const progressFill = document.createElement('span');
@@ -3691,7 +3793,7 @@
       wrapper.appendChild(progressBar);
 
       jobList.prepend(wrapper);
-      return { wrapper, status, progressFill };
+      return { wrapper, status, progressFill, progressInfo };
     }
 
     async function waitForJob(jobId, onUpdate) {
@@ -4096,11 +4198,73 @@
       }, { passive: true });
     }
 
+    // Unsaved changes modal
+    function showUnsavedChangesModal() {
+      return new Promise((resolve) => {
+        if (unsavedChangesModal) {
+          unsavedChangesModal.classList.remove('hidden');
+
+          const handleSave = async () => {
+            cleanup();
+            await saveTranscriptEdits();
+            resolve('save');
+          };
+
+          const handleDiscard = () => {
+            cleanup();
+            resolve('discard');
+          };
+
+          const handleCancel = () => {
+            cleanup();
+            resolve('cancel');
+          };
+
+          const cleanup = () => {
+            unsavedSaveBtn.removeEventListener('click', handleSave);
+            unsavedDiscardBtn.removeEventListener('click', handleDiscard);
+            unsavedCancelBtn.removeEventListener('click', handleCancel);
+            unsavedChangesModal.classList.add('hidden');
+          };
+
+          unsavedSaveBtn.addEventListener('click', handleSave);
+          unsavedDiscardBtn.addEventListener('click', handleDiscard);
+          unsavedCancelBtn.addEventListener('click', handleCancel);
+        } else {
+          resolve('discard');
+        }
+      });
+    }
+
+    // Intercept navigation links to check for unsaved changes
+    document.querySelectorAll('.nav-link, #logout-link').forEach(link => {
+      link.addEventListener('click', async (event) => {
+        if (hasUnsavedChanges) {
+          event.preventDefault();
+          const targetHref = link.getAttribute('href');
+          const result = await showUnsavedChangesModal();
+          if (result === 'save' || result === 'discard') {
+            // Allow navigation after save or discard
+            if (link.id === 'logout-link') {
+              handleLogout();
+            } else {
+              window.location.href = targetHref;
+            }
+          }
+          // If 'cancel', do nothing (stay on page)
+        }
+      });
+    });
+
     // Edit control event listeners
-    if (selectionModeToggle) {
-      selectionModeToggle.addEventListener('change', () => {
+    if (selectionModeBtn) {
+      selectionModeBtn.addEventListener('click', () => {
         toggleSelectionMode();
-        selectionModeToggle.parentElement.style.fontWeight = selectionMode ? 'bold' : 'normal';
+        if (selectionMode) {
+          selectionModeBtn.classList.add('active');
+        } else {
+          selectionModeBtn.classList.remove('active');
+        }
       });
     }
 
