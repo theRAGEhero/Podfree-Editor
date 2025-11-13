@@ -1481,8 +1481,8 @@
       </div>
     </section>
     <section class="panel export-controls" style="padding: 1rem; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
-      <button type="button" id="export-video-btn" class="btn-export" title="Export edited video">Export Video</button>
-      <button type="button" id="export-audio-btn" class="btn-export" title="Export edited audio">Export Audio</button>
+      <button type="button" id="export-video-btn" class="btn-export" title="Render edited video">Render Video</button>
+      <button type="button" id="export-audio-btn" class="btn-export" title="Render edited audio">Render Audio</button>
     </section>
     <aside class="panel toolbox">
       <div class="toolbox-header">
@@ -2805,6 +2805,7 @@
       transcriptEl.textContent = '';
       transcriptEl.appendChild(fragment);
       updateStatusLine();
+      updateExportButtonStyles();
     }
 
     function highlightWordByIndex(index) {
@@ -3019,7 +3020,8 @@
 
     function updateExportButtonStyles() {
       if (exportVideoBtn) {
-        if (videoExportCompleted) {
+        const isVideoUpToDate = videoExportCompleted || checkRenderUpToDate('video');
+        if (isVideoUpToDate) {
           exportVideoBtn.style.background = 'rgba(34, 197, 94, 0.2)';
           exportVideoBtn.style.borderColor = '#22c55e';
           exportVideoBtn.style.color = '#22c55e';
@@ -3030,7 +3032,8 @@
         }
       }
       if (exportAudioBtn) {
-        if (audioExportCompleted) {
+        const isAudioUpToDate = audioExportCompleted || checkRenderUpToDate('audio');
+        if (isAudioUpToDate) {
           exportAudioBtn.style.background = 'rgba(34, 197, 94, 0.2)';
           exportAudioBtn.style.borderColor = '#22c55e';
           exportAudioBtn.style.color = '#22c55e';
@@ -3115,7 +3118,7 @@
 
       try {
         exportVideoBtn.disabled = true;
-        exportVideoBtn.textContent = 'Starting Export...';
+        exportVideoBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-video', {
           method: 'POST',
@@ -3128,12 +3131,12 @@
 
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'Export failed');
+          throw new Error(data.error || 'Render failed');
         }
 
-        exportVideoBtn.textContent = 'Export Video';
+        exportVideoBtn.textContent = 'Render Video';
 
-        const card = addJobCard(data.job_id, `Export Video`);
+        const card = addJobCard(data.job_id, `Render Video`);
         const job = await waitForJob(data.job_id, (update) => {
           card.status.textContent = `${update.status} — ${update.message || ''}`;
           const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
@@ -3149,26 +3152,27 @@
 
         if (job.status === 'completed') {
           videoExportCompleted = true;
+          saveRenderState('video');
           updateExportButtonStyles();
-          alert(`Video export completed! Output: ${data.output_file}`);
+          alert(`Video render completed! Output: ${data.output_file}`);
         } else {
-          alert(`Video export failed: ${job.message || 'Unknown error'}`);
+          alert(`Video render failed: ${job.message || 'Unknown error'}`);
         }
 
         await loadWorkspace();
       } catch (error) {
-        console.error('Export error:', error);
-        alert(`Export failed: ${error.message}`);
+        console.error('Render error:', error);
+        alert(`Render failed: ${error.message}`);
       } finally {
         exportVideoBtn.disabled = false;
-        exportVideoBtn.textContent = 'Export Video';
+        exportVideoBtn.textContent = 'Render Video';
       }
     }
 
     async function exportEditedAudio() {
       const sourceFile = workspaceFiles.audio || workspaceFiles.video;
       if (!sourceFile) {
-        alert('No audio or video file available for export');
+        alert('No audio or video file available for render');
         return;
       }
 
@@ -3176,14 +3180,14 @@
       const deletedCount = deletedWords.size;
 
       if (deletedCount === 0) {
-        if (!confirm('No words have been deleted. Export original audio anyway?')) {
+        if (!confirm('No words have been deleted. Render original audio anyway?')) {
           return;
         }
       }
 
       try {
         exportAudioBtn.disabled = true;
-        exportAudioBtn.textContent = 'Starting Export...';
+        exportAudioBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-audio', {
           method: 'POST',
@@ -3196,12 +3200,12 @@
 
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'Export failed');
+          throw new Error(data.error || 'Render failed');
         }
 
-        exportAudioBtn.textContent = 'Export Audio';
+        exportAudioBtn.textContent = 'Render Audio';
 
-        const card = addJobCard(data.job_id, `Export Audio`);
+        const card = addJobCard(data.job_id, `Render Audio`);
         const job = await waitForJob(data.job_id, (update) => {
           card.status.textContent = `${update.status} — ${update.message || ''}`;
           const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
@@ -3217,19 +3221,20 @@
 
         if (job.status === 'completed') {
           audioExportCompleted = true;
+          saveRenderState('audio');
           updateExportButtonStyles();
-          alert(`Audio export completed! Output: ${data.output_file}`);
+          alert(`Audio render completed! Output: ${data.output_file}`);
         } else {
-          alert(`Audio export failed: ${job.message || 'Unknown error'}`);
+          alert(`Audio render failed: ${job.message || 'Unknown error'}`);
         }
 
         await loadWorkspace();
       } catch (error) {
-        console.error('Export error:', error);
-        alert(`Audio export failed: ${error.message}`);
+        console.error('Render error:', error);
+        alert(`Audio render failed: ${error.message}`);
       } finally {
         exportAudioBtn.disabled = false;
-        exportAudioBtn.textContent = 'Export Audio';
+        exportAudioBtn.textContent = 'Render Audio';
       }
     }
 
@@ -3315,6 +3320,7 @@
           updateWordStats();
           updateStatusLine();
           updateEditedDuration();
+          updateExportButtonStyles();
 
           console.log(`Loaded ${data.deletedIndices.length} deleted word indices`);
         } else {
@@ -3322,6 +3328,7 @@
           savedDeletedWords = new Set();
           hasUnsavedChanges = false;
           updateStatusLine();
+          updateExportButtonStyles();
         }
       } catch (error) {
         console.error('Load edits error:', error);
@@ -4019,6 +4026,67 @@
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
       return { status: 'failed', message: 'job not found' };
+    }
+
+    function renderStateKey() {
+      if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) return null;
+      return `podfree-render-state:${workspaceProjectName}:${transcriptSource.name}`;
+    }
+
+    function saveRenderState(type) {
+      const key = renderStateKey();
+      if (!key) return;
+
+      try {
+        const deletedIndices = Array.from(deletedWords).sort((a, b) => a - b);
+        const state = {
+          deletedIndices: deletedIndices,
+          timestamp: Date.now()
+        };
+
+        const allStates = JSON.parse(window.localStorage.getItem(key) || '{}');
+        allStates[type] = state;
+        window.localStorage.setItem(key, JSON.stringify(allStates));
+      } catch (error) {
+        console.warn('Unable to save render state:', error);
+      }
+    }
+
+    function loadRenderState() {
+      const key = renderStateKey();
+      if (!key) return { video: null, audio: null };
+
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (raw) {
+          const allStates = JSON.parse(raw);
+          return {
+            video: allStates.video || null,
+            audio: allStates.audio || null
+          };
+        }
+      } catch (error) {
+        console.warn('Unable to load render state:', error);
+      }
+      return { video: null, audio: null };
+    }
+
+    function checkRenderUpToDate(type) {
+      const renderStates = loadRenderState();
+      const renderState = renderStates[type];
+
+      if (!renderState || !renderState.deletedIndices) return false;
+
+      const currentDeleted = Array.from(deletedWords).sort((a, b) => a - b);
+      const savedDeleted = renderState.deletedIndices;
+
+      if (currentDeleted.length !== savedDeleted.length) return false;
+
+      for (let i = 0; i < currentDeleted.length; i++) {
+        if (currentDeleted[i] !== savedDeleted[i]) return false;
+      }
+
+      return true;
     }
 
     function scriptStateKey() {
