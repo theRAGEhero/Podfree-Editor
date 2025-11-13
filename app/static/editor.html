@@ -4539,6 +4539,21 @@
           updateJobCard(jobId, job);
 
           if (job.status === 'completed' || job.status === 'failed') {
+            // Refresh workspace when important jobs complete
+            if (job.status === 'completed') {
+              const isTranscriptionJob = job.label && (
+                job.label.includes('transcribe') ||
+                job.label.includes('Transcribe') ||
+                job.type === 'script' && job.label.includes('Deepgram')
+              );
+              const isProxyJob = job.type === 'proxy';
+              const isAudioJob = job.label && job.label.includes('Extract');
+
+              if (isTranscriptionJob || isProxyJob || isAudioJob) {
+                // Refresh workspace to show new files/transcripts
+                await loadWorkspace({ refresh: true });
+              }
+            }
             break;
           }
 
