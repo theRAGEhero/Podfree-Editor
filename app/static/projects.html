@@ -199,16 +199,19 @@
       display: flex;
       gap: 0.6rem;
       flex-wrap: wrap;
-      padding-bottom: 0.5rem;
+      padding: 0.75rem 0;
       border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
+      position: relative;
     }
 
     .primary-actions .secondary-open-buttons {
       display: flex;
       gap: 0.6rem;
       flex-wrap: wrap;
+      position: absolute;
+      left: 0;
     }
 
     .primary-actions .secondary-open-buttons button {
@@ -225,10 +228,11 @@
     .primary-actions .main-editor-button {
       background: rgba(56, 189, 248, 0.3);
       border-color: rgba(56, 189, 248, 0.5);
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 600;
-      padding: 0.65rem 1.8rem;
+      padding: 0.75rem 2rem;
       box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+      margin: 0.25rem 0;
     }
 
     .primary-actions .main-editor-button:hover {
