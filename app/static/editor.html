@@ -2883,7 +2883,38 @@
       const total = wordSpans.length;
       const deleted = deletedWords.size;
       const selected = selectedWords.size;
-      wordStatsEl.textContent = `${total} words • ${deleted} deleted • ${selected} selected`;
+
+      // Calculate estimated time based on edits
+      let totalDuration = 0;
+      let deletedDuration = 0;
+
+      wordSpans.forEach((word, index) => {
+        const duration = word.end - word.start;
+        totalDuration += duration;
+        if (deletedWords.has(index)) {
+          deletedDuration += duration;
+        }
+      });
+
+      const editedDuration = totalDuration - deletedDuration;
+
+      const formatDuration = (seconds) => {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        if (hrs > 0) {
+          return `${hrs}h ${mins}m ${secs}s`;
+        } else if (mins > 0) {
+          return `${mins}m ${secs}s`;
+        } else {
+          return `${secs}s`;
+        }
+      };
+
+      const originalTime = formatDuration(totalDuration);
+      const editedTime = formatDuration(editedDuration);
+
+      wordStatsEl.textContent = `${total} words • ${deleted} deleted • ${selected} selected • ${originalTime} → ${editedTime}`;
     }
 
     function toggleSelectionMode() {
@@ -3655,6 +3686,30 @@
         currentTimeEl.textContent = formatTime(media.currentTime || 0);
       }
       updateActiveWord(media.currentTime || 0);
+
+      // Auto-skip deleted words during playback
+      if (!media.paused && wordSpans.length > 0) {
+        const currentTime = media.currentTime;
+
+        // Find the current word index
+        const currentWordIndex = wordSpans.findIndex((w, idx) =>
+          currentTime >= w.start && currentTime < w.end
+        );
+
+        // If we're in a deleted word, skip to the next non-deleted word
+        if (currentWordIndex >= 0 && deletedWords.has(currentWordIndex)) {
+          const nextWordIndex = wordSpans.findIndex((w, idx) =>
+            idx > currentWordIndex && !deletedWords.has(idx)
+          );
+
+          if (nextWordIndex >= 0) {
+            media.currentTime = wordSpans[nextWordIndex].start;
+          } else {
+            // No more non-deleted words - pause at end
+            media.pause();
+          }
+        }
+      }
     }
 
     function updateVersionButtons() {
