@@ -2961,14 +2961,14 @@
     }
 
     async function saveTranscriptEdits() {
-      if (!currentWorkspace || !currentWorkspace.project_name || !transcriptSource || !transcriptSource.path) {
+      if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
         alert('Cannot save: No project or transcript loaded');
         return;
       }
 
       const deletedIndices = Array.from(deletedWords);
-      const projectName = currentWorkspace.project_name;
-      const transcriptFile = transcriptSource.path;
+      const projectName = workspaceProjectName;
+      const transcriptFile = transcriptSource.name;
 
       try {
         saveEditsBtn.disabled = true;
@@ -3005,13 +3005,13 @@
     }
 
     async function loadSavedEdits() {
-      if (!currentWorkspace || !currentWorkspace.project_name || !transcriptSource || !transcriptSource.path) {
+      if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
         console.log('Cannot load saved edits: No project or transcript loaded');
         return;
       }
 
-      const projectName = currentWorkspace.project_name;
-      const transcriptFile = transcriptSource.path;
+      const projectName = workspaceProjectName;
+      const transcriptFile = transcriptSource.name;
 
       try {
         const response = await fetch(
