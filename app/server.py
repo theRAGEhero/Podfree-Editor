@@ -474,6 +474,11 @@ def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
                 continue
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name
+            # Add creation time for sorting
+            try:
+                summary["created_at"] = project_dir.stat().st_ctime
+            except OSError:
+                summary["created_at"] = 0
             projects.append(summary)
         return {"projects": projects, "root": str(user_projects_dir)}
     else:
@@ -483,6 +488,11 @@ def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
                 continue
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name
+            # Add creation time for sorting
+            try:
+                summary["created_at"] = project_dir.stat().st_ctime
+            except OSError:
+                summary["created_at"] = 0
             projects.append(summary)
         return {"projects": projects, "root": str(PROJECTS_DIR)}
 

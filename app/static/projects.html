@@ -521,7 +521,15 @@
       const filtered = query
         ? allProjects.filter((project) => project.name.toLowerCase().includes(query))
         : allProjects;
-      renderProjects(filtered);
+
+      // Sort by creation time (newest first)
+      const sorted = filtered.sort((a, b) => {
+        const timeA = a.created_at || 0;
+        const timeB = b.created_at || 0;
+        return timeB - timeA; // Descending order (newest first)
+      });
+
+      renderProjects(sorted);
     }
 
     function renderProjects(projects) {
