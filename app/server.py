@@ -2259,6 +2259,41 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"deletedIndices": []})
             return
 
+        if path == "/api/contact":
+            data = self._read_json_body()
+            email = (data.get("email") or "").strip()
+            message = (data.get("message") or "").strip()
+
+            if not email or "@" not in email:
+                self._send_json({"error": "Valid email address required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not message:
+                self._send_json({"error": "Message is required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            # Save to comments.txt in data directory
+            comments_file = DATA_DIR / "comments.txt"
+            try:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                comment_entry = f"\n{'='*80}\n"
+                comment_entry += f"Date: {timestamp}\n"
+                comment_entry += f"Email: {email}\n"
+                comment_entry += f"Message:\n{message}\n"
+                comment_entry += f"{'='*80}\n"
+
+                # Append to comments file
+                with open(comments_file, "a", encoding="utf-8") as f:
+                    f.write(comment_entry)
+
+                logger.info("Contact form submission from %s saved", email)
+                self._send_json({"status": "success", "message": "Thank you for your message!"})
+            except OSError as exc:
+                logger.error("Failed to save contact form: %s", exc)
+                self._send_json({"error": "Failed to save message. Please try again."}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
         self._send_json({"error": "not found"}, status=HTTPStatus.NOT_FOUND)
 
 
