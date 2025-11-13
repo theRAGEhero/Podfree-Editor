@@ -141,6 +141,14 @@
       font-weight: 600;
     }
 
+    .nav-link.workspace-required {
+      display: none;
+    }
+
+    .nav-link.workspace-required.visible {
+      display: block;
+    }
+
     h1 {
       margin: 0;
       font-size: clamp(1.9rem, 1.2rem + 2vw, 2.6rem);
@@ -1407,9 +1415,9 @@
       <div class="brand-actions">
         <nav class="top-nav">
           <a class="nav-link" href="projects.html">Projects</a>
-          <a class="nav-link active" href="editor.html">Editor</a>
-          <a class="nav-link" href="light_editor.html">Video</a>
-          <a class="nav-link" href="notes_editor.html">Notes</a>
+          <a class="nav-link workspace-required active" href="editor.html">Editor</a>
+          <a class="nav-link workspace-required" href="light_editor.html">Video</a>
+          <a class="nav-link workspace-required" href="notes_editor.html">Notes</a>
           <a class="nav-link" href="#" id="logout-link">Logout</a>
         </nav>
         <button id="file-manager-button" class="icon-button with-label" type="button" title="Manage workspace files">
@@ -2443,6 +2451,14 @@
       if (path) params.set('workspace', path);
       // No auxiliary links in Editor header, but keep placeholder for future use
       const _suffix = params.toString() ? `?${params.toString()}` : '';
+
+      // Show/hide workspace-required navigation links
+      const workspaceLinks = document.querySelectorAll('.nav-link.workspace-required');
+      if (path) {
+        workspaceLinks.forEach(link => link.classList.add('visible'));
+      } else {
+        workspaceLinks.forEach(link => link.classList.remove('visible'));
+      }
     }
 
     function workspaceLabel(summary) {

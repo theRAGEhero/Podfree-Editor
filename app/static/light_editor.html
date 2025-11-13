@@ -89,6 +89,14 @@
       font-weight: 600;
     }
 
+    .nav-link.workspace-required {
+      display: none;
+    }
+
+    .nav-link.workspace-required.visible {
+      display: block;
+    }
+
     h1 {
       margin: 0;
       font-size: clamp(1.9rem, 1.2rem + 2vw, 2.6rem);
@@ -241,9 +249,9 @@
       <img src="logo.svg" alt="Podfree" class="site-logo" />
       <nav class="top-nav">
         <a class="nav-link" href="projects.html">Projects</a>
-        <a class="nav-link" href="editor.html">Editor</a>
-        <a class="nav-link active" href="light_editor.html">Video</a>
-        <a class="nav-link" href="notes_editor.html">Notes</a>
+        <a class="nav-link workspace-required" href="editor.html">Editor</a>
+        <a class="nav-link workspace-required active" href="light_editor.html">Video</a>
+        <a class="nav-link workspace-required" href="notes_editor.html">Notes</a>
         <a class="nav-link" href="#" id="logout-link">Logout</a>
       </nav>
     </div>
@@ -524,7 +532,11 @@
         const response = await fetch(`/api/workspace${refresh ? '?refresh=1' : ''}`);
         const data = await response.json();
         workspaceSummary = data && data.path ? data : null;
+
+        // Show/hide workspace-required navigation links
+        const workspaceLinks = document.querySelectorAll('.nav-link.workspace-required');
         if (!workspaceSummary || !workspaceSummary.path) {
+          workspaceLinks.forEach(link => link.classList.remove('visible'));
           statusLine.textContent = 'Select a project from the Projects page to begin.';
           workspaceNameEl.textContent = 'Workspace: —';
           mediaSourceLabel.textContent = 'Source: —';
@@ -532,6 +544,8 @@
           media.load();
           return;
         }
+
+        workspaceLinks.forEach(link => link.classList.add('visible'));
         workspaceNameEl.textContent = `Workspace: ${workspaceSummary.project_name || workspaceLabel(workspaceSummary.path)}`;
         configureSource();
         await loadTranscript();
