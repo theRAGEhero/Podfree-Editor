@@ -1397,6 +1397,49 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             self._send_json(list_projects(username))
             return
 
+        if path == "/api/load-transcript-edits":
+            if user_db is None:
+                # Return empty edits if database not available
+                self._send_json({"deletedIndices": []})
+                return
+
+            # Get user info from session
+            username = session.get("user") if session else None
+            if not username:
+                # Return empty edits if not authenticated
+                self._send_json({"deletedIndices": []})
+                return
+
+            user = user_db.get_user_by_username(username)
+            if not user:
+                self._send_json({"deletedIndices": []})
+                return
+
+            params = parse_qs(parsed.query)
+            project_name = params.get("projectName", [None])[0]
+            transcript_file = params.get("transcriptFile", [None])[0]
+
+            if not project_name or not transcript_file:
+                self._send_json({"deletedIndices": []})
+                return
+
+            try:
+                edits_json = user_db.load_transcript_edits(
+                    user_id=user['id'],
+                    project_name=project_name,
+                    transcript_file=transcript_file
+                )
+
+                if edits_json:
+                    edits_data = json.loads(edits_json)
+                    self._send_json(edits_data)
+                else:
+                    self._send_json({"deletedIndices": []})
+            except Exception as e:
+                logger.error("Failed to load transcript edits: %s", e)
+                self._send_json({"deletedIndices": []})
+            return
+
         return super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
@@ -2107,6 +2150,100 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 "job_id": job_id,
                 "output_file": output_filename
             })
+            return
+
+        if path == "/api/save-transcript-edits":
+            if user_db is None:
+                self._send_json({"error": "database not available"}, status=HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+
+            # Get user info from session
+            username = session.get("user") if session else None
+            if not username:
+                self._send_json({"error": "not authenticated"}, status=HTTPStatus.UNAUTHORIZED)
+                return
+
+            user = user_db.get_user_by_username(username)
+            if not user:
+                self._send_json({"error": "user not found"}, status=HTTPStatus.UNAUTHORIZED)
+                return
+
+            data = self._read_json_body()
+            project_name = data.get("projectName")
+            transcript_file = data.get("transcriptFile")
+            deleted_indices = data.get("deletedIndices", [])
+
+            if not project_name:
+                self._send_json({"error": "projectName required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not transcript_file:
+                self._send_json({"error": "transcriptFile required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not isinstance(deleted_indices, list):
+                self._send_json({"error": "deletedIndices must be an array"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                # Store as JSON
+                edits_json = json.dumps({"deletedIndices": deleted_indices})
+                user_db.save_transcript_edits(
+                    user_id=user['id'],
+                    project_name=project_name,
+                    transcript_file=transcript_file,
+                    edits_json=edits_json
+                )
+                self._send_json({
+                    "status": "saved",
+                    "deletedCount": len(deleted_indices)
+                })
+            except Exception as e:
+                logger.error("Failed to save transcript edits: %s", e)
+                self._send_json({"error": f"Failed to save: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if path == "/api/load-transcript-edits":
+            if user_db is None:
+                # Return empty edits if database not available
+                self._send_json({"deletedIndices": []})
+                return
+
+            # Get user info from session
+            username = session.get("user") if session else None
+            if not username:
+                # Return empty edits if not authenticated
+                self._send_json({"deletedIndices": []})
+                return
+
+            user = user_db.get_user_by_username(username)
+            if not user:
+                self._send_json({"deletedIndices": []})
+                return
+
+            params = parse_qs(parsed.query)
+            project_name = params.get("projectName", [None])[0]
+            transcript_file = params.get("transcriptFile", [None])[0]
+
+            if not project_name or not transcript_file:
+                self._send_json({"deletedIndices": []})
+                return
+
+            try:
+                edits_json = user_db.load_transcript_edits(
+                    user_id=user['id'],
+                    project_name=project_name,
+                    transcript_file=transcript_file
+                )
+
+                if edits_json:
+                    edits_data = json.loads(edits_json)
+                    self._send_json(edits_data)
+                else:
+                    self._send_json({"deletedIndices": []})
+            except Exception as e:
+                logger.error("Failed to load transcript edits: %s", e)
+                self._send_json({"deletedIndices": []})
             return
 
         self._send_json({"error": "not found"}, status=HTTPStatus.NOT_FOUND)

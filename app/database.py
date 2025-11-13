@@ -84,12 +84,28 @@ class UserDB:
                 )
             """)
 
+            # Transcript edits table
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS transcript_edits (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    project_name TEXT NOT NULL,
+                    transcript_file TEXT NOT NULL,
+                    edits_json TEXT NOT NULL,
+                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    UNIQUE(user_id, project_name, transcript_file)
+                )
+            """)
+
             # Create indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_credits_user_week ON credits(user_id, week_year)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_usage_user_month ON usage(user_id, month_year)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_usage_uploaded ON usage(uploaded_at)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_transcript_edits_user_project ON transcript_edits(user_id, project_name)")
 
             conn.commit()
             logger.info("Database initialized at %s", self.db_path)
@@ -369,5 +385,91 @@ class UserDB:
 
             return [dict(row) for row in rows]
 
+        finally:
+            conn.close()
+
+    def save_transcript_edits(
+        self,
+        user_id: int,
+        project_name: str,
+        transcript_file: str,
+        edits_json: str
+    ):
+        """
+        Save or update transcript edits for a project.
+        edits_json should be a JSON string containing the deleted word indices.
+        """
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO transcript_edits (user_id, project_name, transcript_file, edits_json, saved_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, project_name, transcript_file)
+                DO UPDATE SET edits_json = ?, updated_at = ?
+                """,
+                (user_id, project_name, transcript_file, edits_json, datetime.utcnow(), datetime.utcnow(),
+                 edits_json, datetime.utcnow())
+            )
+            conn.commit()
+            logger.info("Saved transcript edits for user_id=%d, project=%s, transcript=%s",
+                       user_id, project_name, transcript_file)
+        finally:
+            conn.close()
+
+    def load_transcript_edits(
+        self,
+        user_id: int,
+        project_name: str,
+        transcript_file: str
+    ) -> Optional[str]:
+        """
+        Load saved transcript edits for a project.
+        Returns the edits_json string if found, None otherwise.
+        """
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                """
+                SELECT edits_json FROM transcript_edits
+                WHERE user_id = ? AND project_name = ? AND transcript_file = ?
+                """,
+                (user_id, project_name, transcript_file)
+            ).fetchone()
+
+            if row:
+                logger.info("Loaded transcript edits for user_id=%d, project=%s, transcript=%s",
+                           user_id, project_name, transcript_file)
+                return row['edits_json']
+            return None
+        finally:
+            conn.close()
+
+    def delete_transcript_edits(
+        self,
+        user_id: int,
+        project_name: str,
+        transcript_file: Optional[str] = None
+    ):
+        """
+        Delete transcript edits. If transcript_file is None, delete all edits for the project.
+        """
+        conn = self._get_connection()
+        try:
+            if transcript_file:
+                conn.execute(
+                    "DELETE FROM transcript_edits WHERE user_id = ? AND project_name = ? AND transcript_file = ?",
+                    (user_id, project_name, transcript_file)
+                )
+                logger.info("Deleted transcript edits for user_id=%d, project=%s, transcript=%s",
+                           user_id, project_name, transcript_file)
+            else:
+                conn.execute(
+                    "DELETE FROM transcript_edits WHERE user_id = ? AND project_name = ?",
+                    (user_id, project_name)
+                )
+                logger.info("Deleted all transcript edits for user_id=%d, project=%s",
+                           user_id, project_name)
+            conn.commit()
         finally:
             conn.close()

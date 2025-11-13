@@ -559,6 +559,29 @@
       cursor: not-allowed;
     }
 
+    .edit-controls .btn-save {
+      padding: 6px 12px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 6px;
+      color: #a855f7;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .edit-controls .btn-save:hover {
+      background: rgba(168, 85, 247, 0.2);
+      border-color: #a855f7;
+      color: #d8b4fe;
+    }
+
+    .edit-controls .btn-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .edit-controls .btn-export {
       padding: 6px 12px;
       background: rgba(59, 130, 246, 0.1);
@@ -1411,6 +1434,7 @@
         <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled>✕</button>
         <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>Restore Selected</button>
         <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
+        <button type="button" id="save-edits-btn" class="btn-save" title="Save edits">💾 Save Edits</button>
         <button type="button" id="export-video-btn" class="btn-export" title="Export edited video">Export Video</button>
         <button type="button" id="export-audio-btn" class="btn-export" title="Export edited audio">Export Audio</button>
         <span id="word-stats" class="stats"></span>
@@ -1546,6 +1570,7 @@
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     const restoreSelectedBtn = document.getElementById('restore-selected-btn');
     const skipDeletedBtn = document.getElementById('skip-deleted-btn');
+    const saveEditsBtn = document.getElementById('save-edits-btn');
     const exportVideoBtn = document.getElementById('export-video-btn');
     const exportAudioBtn = document.getElementById('export-audio-btn');
     const wordStatsEl = document.getElementById('word-stats');
@@ -2935,6 +2960,100 @@
       }
     }
 
+    async function saveTranscriptEdits() {
+      if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
+        alert('Cannot save: No project or transcript loaded');
+        return;
+      }
+
+      const deletedIndices = Array.from(deletedWords);
+      const projectName = workspaceProjectName;
+      const transcriptFile = transcriptSource.name;
+
+      try {
+        saveEditsBtn.disabled = true;
+        saveEditsBtn.textContent = '💾 Saving...';
+
+        const response = await fetch('/api/save-transcript-edits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectName: projectName,
+            transcriptFile: transcriptFile,
+            deletedIndices: deletedIndices
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Save failed');
+        }
+
+        saveEditsBtn.textContent = '💾 Saved!';
+        setTimeout(() => {
+          saveEditsBtn.textContent = '💾 Save Edits';
+        }, 2000);
+
+        console.log(`Saved ${data.deletedCount} deleted word indices`);
+      } catch (error) {
+        console.error('Save error:', error);
+        alert(`Failed to save edits: ${error.message}`);
+        saveEditsBtn.textContent = '💾 Save Edits';
+      } finally {
+        saveEditsBtn.disabled = false;
+      }
+    }
+
+    async function loadSavedEdits() {
+      if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
+        console.log('Cannot load saved edits: No project or transcript loaded');
+        return;
+      }
+
+      const projectName = workspaceProjectName;
+      const transcriptFile = transcriptSource.name;
+
+      try {
+        const response = await fetch(
+          `/api/load-transcript-edits?projectName=${encodeURIComponent(projectName)}&transcriptFile=${encodeURIComponent(transcriptFile)}`
+        );
+
+        const data = await response.json();
+
+        if (data.deletedIndices && Array.isArray(data.deletedIndices) && data.deletedIndices.length > 0) {
+          console.log(`Loading ${data.deletedIndices.length} saved edits`);
+
+          // Clear existing edits and apply saved ones
+          deletedWords.clear();
+          for (const index of data.deletedIndices) {
+            deletedWords.add(index);
+          }
+
+          // Update UI to reflect loaded edits
+          updateDeletedWordsUI();
+          updateWordStats();
+
+          console.log(`Loaded ${data.deletedIndices.length} deleted word indices`);
+        } else {
+          console.log('No saved edits found for this transcript');
+        }
+      } catch (error) {
+        console.error('Load edits error:', error);
+        // Don't alert on load error - just log it
+      }
+    }
+
+    function updateDeletedWordsUI() {
+      // Update visual state of all words based on deletedWords Set
+      wordSpans.forEach((entry, index) => {
+        if (deletedWords.has(index)) {
+          entry.element.classList.add('deleted');
+        } else {
+          entry.element.classList.remove('deleted');
+        }
+      });
+    }
+
     // Real-time preview: skip deleted words during playback
     function startPlaybackTracking() {
       if (playbackTrackingInterval) return; // Already tracking
@@ -3130,6 +3249,8 @@
           if (segments.length) {
             renderTranscript(segments);
             updateActiveWord(media.currentTime || 0);
+            // Load saved edits after transcript is rendered
+            await loadSavedEdits();
           } else {
             resetTranscript('Transcript JSON loaded but no entries were found.', 'Empty');
             return;
@@ -3139,6 +3260,8 @@
           const segments = parseSRT(text);
           renderTranscript(segments);
           updateActiveWord(media.currentTime || 0);
+          // Load saved edits after transcript is rendered
+          await loadSavedEdits();
         }
       } catch (error) {
         console.error(error);
@@ -3949,6 +4072,10 @@
 
     if (skipDeletedBtn) {
       skipDeletedBtn.addEventListener('click', skipToNextNonDeleted);
+    }
+
+    if (saveEditsBtn) {
+      saveEditsBtn.addEventListener('click', saveTranscriptEdits);
     }
 
     if (exportVideoBtn) {
