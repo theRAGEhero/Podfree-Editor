@@ -1664,6 +1664,7 @@
     let deletedWords = new Set();
     let isDragging = false;
     let dragStartIndex = -1;
+    let dragCurrentIndex = -1;
     let dragStartSegment = null;
     let hasUnsavedChanges = false;
     let savedDeletedWords = new Set();
@@ -1845,8 +1846,13 @@
     // Reset drag selection on mouse up
     document.addEventListener('mouseup', () => {
       if (isDragging) {
+        // If it was just a click (no drag), toggle the single word
+        if (dragStartIndex === dragCurrentIndex && dragStartIndex >= 0) {
+          toggleWordSelection(dragStartIndex);
+        }
         isDragging = false;
         dragStartIndex = -1;
+        dragCurrentIndex = -1;
         dragStartSegment = null;
       }
     });
@@ -2761,20 +2767,22 @@
               e.preventDefault();
               isDragging = true;
               dragStartIndex = index;
+              dragCurrentIndex = index;
               dragStartSegment = entry;
-              toggleWordSelection(index);
             }
           });
 
           span.addEventListener('mouseenter', () => {
             if (selectionMode && isDragging && dragStartSegment === entry) {
-              selectWordRange(dragStartIndex, index);
+              dragCurrentIndex = index;
+              updateDragSelection();
             }
           });
 
-          span.addEventListener('click', () => {
+          span.addEventListener('click', (e) => {
             if (selectionMode) {
-              // Click handled by mousedown for drag selection
+              // Click is a single word toggle (handled in mouseup if no drag)
+              e.preventDefault();
             } else {
               // Re-enable auto-scroll when user clicks a word to seek
               userIsScrolling = false;
@@ -2890,6 +2898,9 @@
         selectedWords.clear();
         if (deleteSelectedBtn) deleteSelectedBtn.disabled = true;
         if (restoreSelectedBtn) restoreSelectedBtn.disabled = true;
+        if (transcriptEl) transcriptEl.classList.remove('selecting');
+      } else {
+        if (transcriptEl) transcriptEl.classList.add('selecting');
       }
       updateWordStats();
     }
@@ -2917,17 +2928,19 @@
       updateWordStats();
     }
 
-    function selectWordRange(startIndex, endIndex) {
-      if (!selectionMode) return;
+    function updateDragSelection() {
+      if (!selectionMode || !isDragging) return;
 
-      const minIndex = Math.min(startIndex, endIndex);
-      const maxIndex = Math.max(startIndex, endIndex);
+      const minIndex = Math.min(dragStartIndex, dragCurrentIndex);
+      const maxIndex = Math.max(dragStartIndex, dragCurrentIndex);
 
-      // Select all words in the range
+      // Add all words in the current drag range
       for (let i = minIndex; i <= maxIndex; i++) {
-        if (!selectedWords.has(i)) {
-          selectedWords.add(i);
-          wordSpans[i].element.classList.add('selected');
+        if (wordSpans[i] && wordSpans[i].segment === dragStartSegment) {
+          if (!selectedWords.has(i)) {
+            selectedWords.add(i);
+            wordSpans[i].element.classList.add('selected');
+          }
         }
       }
 
