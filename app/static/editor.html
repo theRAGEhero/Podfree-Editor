@@ -1662,8 +1662,13 @@
     let selectionMode = false;
     let selectedWords = new Set();
     let deletedWords = new Set();
+    let isDragging = false;
+    let dragStartIndex = -1;
+    let dragStartSegment = null;
     let hasUnsavedChanges = false;
     let savedDeletedWords = new Set();
+    let videoExportCompleted = false;
+    let audioExportCompleted = false;
     let playbackTrackingInterval = null;
     let userIsScrolling = false;
     let scrollTimeout = null;
@@ -1836,6 +1841,15 @@
         await uploadFilesToWorkspace(files);
       });
     }
+
+    // Reset drag selection on mouse up
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        dragStartIndex = -1;
+        dragStartSegment = null;
+      }
+    });
 
     document.addEventListener('keydown', (event) => {
       // Word editing keyboard shortcuts
@@ -2736,13 +2750,31 @@
           if (!Number.isFinite(wordEnd) || wordEnd <= wordStart) {
             wordEnd = wordStart + 0.12;
           }
-          const wordEntry = { element: span, start: wordStart, end: wordEnd };
+          const wordEntry = { element: span, start: wordStart, end: wordEnd, segment: entry };
           const index = wordSpans.push(wordEntry) - 1;
           span.dataset.start = String(wordStart);
+          span.dataset.index = String(index);
           span.title = `Seek to ${formatTime(wordStart)}`;
+
+          span.addEventListener('mousedown', (e) => {
+            if (selectionMode) {
+              e.preventDefault();
+              isDragging = true;
+              dragStartIndex = index;
+              dragStartSegment = entry;
+              toggleWordSelection(index);
+            }
+          });
+
+          span.addEventListener('mouseenter', () => {
+            if (selectionMode && isDragging && dragStartSegment === entry) {
+              selectWordRange(dragStartIndex, index);
+            }
+          });
+
           span.addEventListener('click', () => {
             if (selectionMode) {
-              toggleWordSelection(index);
+              // Click handled by mousedown for drag selection
             } else {
               // Re-enable auto-scroll when user clicks a word to seek
               userIsScrolling = false;
@@ -2885,19 +2917,82 @@
       updateWordStats();
     }
 
+    function selectWordRange(startIndex, endIndex) {
+      if (!selectionMode) return;
+
+      const minIndex = Math.min(startIndex, endIndex);
+      const maxIndex = Math.max(startIndex, endIndex);
+
+      // Select all words in the range
+      for (let i = minIndex; i <= maxIndex; i++) {
+        if (!selectedWords.has(i)) {
+          selectedWords.add(i);
+          wordSpans[i].element.classList.add('selected');
+        }
+      }
+
+      // Update button states
+      if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = selectedWords.size === 0;
+      }
+      if (restoreSelectedBtn) {
+        const hasDeletedSelected = Array.from(selectedWords).some(idx => deletedWords.has(idx));
+        restoreSelectedBtn.disabled = !hasDeletedSelected;
+      }
+
+      updateWordStats();
+    }
+
     function checkForUnsavedChanges() {
       // Compare current deletedWords with savedDeletedWords
       if (deletedWords.size !== savedDeletedWords.size) {
         hasUnsavedChanges = true;
+        // Reset export completion states when new edits are made
+        if (videoExportCompleted || audioExportCompleted) {
+          videoExportCompleted = false;
+          audioExportCompleted = false;
+          updateExportButtonStyles();
+        }
         return;
       }
       for (const index of deletedWords) {
         if (!savedDeletedWords.has(index)) {
           hasUnsavedChanges = true;
+          // Reset export completion states when new edits are made
+          if (videoExportCompleted || audioExportCompleted) {
+            videoExportCompleted = false;
+            audioExportCompleted = false;
+            updateExportButtonStyles();
+          }
           return;
         }
       }
       hasUnsavedChanges = false;
+    }
+
+    function updateExportButtonStyles() {
+      if (exportVideoBtn) {
+        if (videoExportCompleted) {
+          exportVideoBtn.style.background = 'rgba(34, 197, 94, 0.2)';
+          exportVideoBtn.style.borderColor = '#22c55e';
+          exportVideoBtn.style.color = '#22c55e';
+        } else {
+          exportVideoBtn.style.background = '';
+          exportVideoBtn.style.borderColor = '';
+          exportVideoBtn.style.color = '';
+        }
+      }
+      if (exportAudioBtn) {
+        if (audioExportCompleted) {
+          exportAudioBtn.style.background = 'rgba(34, 197, 94, 0.2)';
+          exportAudioBtn.style.borderColor = '#22c55e';
+          exportAudioBtn.style.color = '#22c55e';
+        } else {
+          exportAudioBtn.style.background = '';
+          exportAudioBtn.style.borderColor = '';
+          exportAudioBtn.style.color = '';
+        }
+      }
     }
 
     function toggleWordDeleted(index) {
@@ -3006,6 +3101,8 @@
         });
 
         if (job.status === 'completed') {
+          videoExportCompleted = true;
+          updateExportButtonStyles();
           alert(`Video export completed! Output: ${data.output_file}`);
         } else {
           alert(`Video export failed: ${job.message || 'Unknown error'}`);
@@ -3072,6 +3169,8 @@
         });
 
         if (job.status === 'completed') {
+          audioExportCompleted = true;
+          updateExportButtonStyles();
           alert(`Audio export completed! Output: ${data.output_file}`);
         } else {
           alert(`Audio export failed: ${job.message || 'Unknown error'}`);
