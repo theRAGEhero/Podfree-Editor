@@ -1,5 +1,6 @@
 pillow
 requests
+requests-oauthlib
 markdown
 deepgram-sdk
 bcrypt

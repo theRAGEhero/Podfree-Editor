@@ -490,6 +490,8 @@ def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
 SCRIPT_LABELS = {
     "deepgram_transcribe_debates.py": "Transcribe with Deepgram",
     "extract_audio_from_video.py": "Extract .mp3 File",
+    "detect_silence.py": "Detect Silence",
+    "remove_silence.py": "Remove Silence (Render)",
     "generate_covers.py": "Generate Covers",
     "generate_chapters.py": "Generate Chapters",
     "export_castopod_chapters.py": "Export Castopod Chapters",
@@ -497,19 +499,30 @@ SCRIPT_LABELS = {
     "create_ghost_post.py": "Post to Ghost CMS",
     "castopod_post.py": "Castopod Draft",
     "post_to_linkedin.py": "Post to LinkedIn",
+    "post_to_facebook.py": "Post to Facebook",
+    "post_to_twitter.py": "Post to Twitter/X",
+    "post_to_mastodon.py": "Post to Mastodon",
+    "post_to_bluesky.py": "Post to Bluesky",
     "identify_participants.py": "Identify Participants",
 }
 
 SCRIPT_SORT_PRIORITY = {
     "extract_audio_from_video.py": 0,
-    "deepgram_transcribe_debates.py": 1,
-    "generate_covers.py": 2,
-    "generate_chapters.py": 3,
-    "export_castopod_chapters.py": 4,
-    "prepare_linkedin_post.py": 5,
-    "identify_participants.py": 6,
-    "create_ghost_post.py": 7,
-    "post_to_linkedin.py": 8,
+    "detect_silence.py": 1,
+    "remove_silence.py": 2,
+    "deepgram_transcribe_debates.py": 3,
+    "generate_covers.py": 4,
+    "generate_chapters.py": 5,
+    "export_castopod_chapters.py": 6,
+    "prepare_linkedin_post.py": 7,
+    "identify_participants.py": 8,
+    "create_ghost_post.py": 9,
+    "castopod_post.py": 10,
+    "post_to_linkedin.py": 11,
+    "post_to_facebook.py": 12,
+    "post_to_twitter.py": 13,
+    "post_to_mastodon.py": 14,
+    "post_to_bluesky.py": 15,
 }
 
 
