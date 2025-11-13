@@ -1406,6 +1406,233 @@
         flex-direction: column;
       }
     }
+
+    /* Bottom Log Bar */
+    .log-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--panel);
+      border-top: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      transition: transform 0.3s ease, height 0.3s ease;
+    }
+
+    .log-bar.minimized {
+      transform: translateY(calc(100% - 42px));
+    }
+
+    .log-bar.hidden {
+      transform: translateY(100%);
+    }
+
+    .log-bar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+    }
+
+    .log-bar:not(.minimized) .log-bar-header {
+      border-bottom-color: var(--panel-border);
+    }
+
+    .log-bar-header:hover {
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    .log-bar-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .log-bar-toggle {
+      transition: transform 0.3s ease;
+      color: var(--muted);
+    }
+
+    .log-bar:not(.minimized) .log-bar-toggle {
+      transform: rotate(180deg);
+    }
+
+    .log-bar-summary {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .log-bar-badge {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .log-bar-badge.running {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+    }
+
+    .log-bar-badge.completed {
+      background: rgba(52, 211, 153, 0.2);
+      border-color: rgba(52, 211, 153, 0.35);
+      color: #34d399;
+    }
+
+    .log-bar-badge.failed {
+      background: rgba(248, 113, 113, 0.2);
+      border-color: rgba(248, 113, 113, 0.35);
+      color: #f87171;
+    }
+
+    .log-bar-content {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 1rem 1.5rem;
+      display: none;
+    }
+
+    .log-bar:not(.minimized) .log-bar-content {
+      display: block;
+    }
+
+    .log-job-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .log-job-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+    }
+
+    .log-job-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .log-job-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .log-job-status {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .log-job-progress {
+      height: 4px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .log-job-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .log-job-progress-fill.completed {
+      background: #34d399;
+    }
+
+    .log-job-progress-fill.failed {
+      background: #f87171;
+    }
+
+    .log-job-logs {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #94a3b8;
+      display: none;
+    }
+
+    .log-job-logs.visible {
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    .log-job-log-line {
+      margin: 0.2rem 0;
+      word-wrap: break-word;
+    }
+
+    .log-job-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .log-job-action-btn {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: var(--text);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .log-job-action-btn:hover {
+      background: rgba(148, 163, 184, 0.25);
+    }
+
+    .log-bar-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .log-bar-action-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.25rem;
+      cursor: pointer;
+      transition: color 0.2s ease;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .log-bar-action-btn:hover {
+      color: var(--text);
+    }
+
+    body {
+      padding-bottom: 42px; /* Space for minimized log bar */
+    }
   </style>
 </head>
 <body>
@@ -1498,6 +1725,27 @@
       <div id="job-list" class="job-list"></div>
     </aside>
   </main>
+
+  <!-- Bottom Log Bar -->
+  <div id="log-bar" class="log-bar minimized">
+    <div class="log-bar-header" id="log-bar-toggle">
+      <div class="log-bar-title">
+        <span>Activity</span>
+        <div class="log-bar-summary" id="log-bar-summary">
+          <span id="log-summary-text">No active jobs</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div class="log-bar-actions">
+          <button class="log-bar-action-btn" id="log-bar-clear" title="Clear completed jobs" style="font-size: 1rem;">×</button>
+        </div>
+        <span class="log-bar-toggle">▼</span>
+      </div>
+    </div>
+    <div class="log-bar-content">
+      <div class="log-job-list" id="log-job-list"></div>
+    </div>
+  </div>
 
   <div id="file-manager-modal" class="file-modal hidden" role="dialog" aria-modal="true" aria-labelledby="file-manager-title">
     <div class="file-modal-dialog">
@@ -1747,25 +1995,72 @@
         alert('Select a project before uploading files.');
         return;
       }
+
+      // Create a unique job ID for this upload
+      const uploadJobId = 'upload-' + Date.now();
+      const fileNames = Array.from(files).map(f => f.name).join(', ');
+      const fileCount = files.length;
+      const label = `Upload ${fileCount} file${fileCount > 1 ? 's' : ''}: ${fileNames.length > 50 ? fileNames.substring(0, 50) + '...' : fileNames}`;
+
       try {
+        // Create job card for upload
+        addJobCard(uploadJobId, label);
+        const jobData = activeJobs.get(uploadJobId);
+        if (jobData) {
+          jobData.status = 'running';
+          jobData.statusEl.textContent = 'running — preparing upload';
+          jobData.progressFill.style.width = '0%';
+          updateLogBarSummary();
+        }
+
         const summary = await fetch('/api/workspace').then((resp) => resp.json());
         const projectName = summary && summary.project_name ? summary.project_name : null;
         const workspacePath = summary && summary.path ? summary.path : null;
         if (projectName) {
-          await uploadViaProjectsEndpoint(projectName, files);
+          await uploadViaProjectsEndpoint(projectName, files, uploadJobId);
           await loadWorkspace({ refresh: true });
           await refreshFileManager('.');
+
+          // Mark as completed
+          const jobData = activeJobs.get(uploadJobId);
+          if (jobData) {
+            jobData.status = 'completed';
+            jobData.statusEl.textContent = 'completed — files uploaded successfully';
+            jobData.progressFill.style.width = '100%';
+            jobData.progressFill.classList.add('completed');
+            updateLogBarSummary();
+          }
           return;
         }
         if (workspacePath) {
-          await uploadViaWorkspaceEndpoint(workspacePath, files);
+          await uploadViaWorkspaceEndpoint(workspacePath, files, uploadJobId);
           await loadWorkspace({ refresh: true });
           await refreshFileManager('.');
+
+          // Mark as completed
+          const jobData = activeJobs.get(uploadJobId);
+          if (jobData) {
+            jobData.status = 'completed';
+            jobData.statusEl.textContent = 'completed — files uploaded successfully';
+            jobData.progressFill.style.width = '100%';
+            jobData.progressFill.classList.add('completed');
+            updateLogBarSummary();
+          }
           return;
         }
         alert('Workspace path unavailable; cannot determine upload target.');
       } catch (error) {
         console.error(error);
+
+        // Mark as failed
+        const jobData = activeJobs.get(uploadJobId);
+        if (jobData) {
+          jobData.status = 'failed';
+          jobData.statusEl.textContent = `failed — ${error.message}`;
+          jobData.progressFill.classList.add('failed');
+          updateLogBarSummary();
+        }
+
         alert('Upload failed: ' + error.message);
       }
     }
@@ -1779,7 +2074,7 @@
       }
     }
 
-    function uploadViaProjectsEndpoint(projectName, files) {
+    function uploadViaProjectsEndpoint(projectName, files, uploadJobId) {
       return new Promise((resolve, reject) => {
         const formData = new FormData();
         Array.from(files).forEach((file) => formData.append('files', file));
@@ -1790,6 +2085,13 @@
           if (!event.lengthComputable) return;
           const pct = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
           setFileUploadState(true, `Uploading… ${pct}%`);
+
+          // Update log bar job progress
+          const jobData = activeJobs.get(uploadJobId);
+          if (jobData) {
+            jobData.progressFill.style.width = `${pct}%`;
+            jobData.statusEl.textContent = `running — uploading ${pct}%`;
+          }
         };
         xhr.onerror = () => {
           setFileUploadState(false);
@@ -1807,7 +2109,7 @@
       });
     }
 
-    function uploadViaWorkspaceEndpoint(workspacePath, files) {
+    function uploadViaWorkspaceEndpoint(workspacePath, files, uploadJobId) {
       return new Promise((resolve, reject) => {
         const formData = new FormData();
         Array.from(files).forEach((file) => formData.append('files', file));
@@ -1819,6 +2121,13 @@
           if (!event.lengthComputable) return;
           const pct = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
           setFileUploadState(true, `Uploading… ${pct}%`);
+
+          // Update log bar job progress
+          const jobData = activeJobs.get(uploadJobId);
+          if (jobData) {
+            jobData.progressFill.style.width = `${pct}%`;
+            jobData.statusEl.textContent = `running — uploading ${pct}%`;
+          }
         };
         xhr.onerror = () => {
           setFileUploadState(false);
@@ -3991,35 +4300,137 @@
       }
     }
 
+    // Log Bar Management
+    const logBar = document.getElementById('log-bar');
+    const logBarToggle = document.getElementById('log-bar-toggle');
+    const logBarClear = document.getElementById('log-bar-clear');
+    const logJobList = document.getElementById('log-job-list');
+    const logSummaryText = document.getElementById('log-summary-text');
+    const activeJobs = new Map(); // jobId -> { card, logsVisible, lastLogCount }
+
+    logBarToggle.addEventListener('click', () => {
+      logBar.classList.toggle('minimized');
+    });
+
+    logBarClear.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Remove completed and failed jobs
+      const toRemove = [];
+      activeJobs.forEach((jobData, jobId) => {
+        if (jobData.status === 'completed' || jobData.status === 'failed') {
+          jobData.card.remove();
+          toRemove.push(jobId);
+        }
+      });
+      toRemove.forEach(id => activeJobs.delete(id));
+      updateLogBarSummary();
+    });
+
+    function updateLogBarSummary() {
+      const running = Array.from(activeJobs.values()).filter(j => j.status === 'running').length;
+      const completed = Array.from(activeJobs.values()).filter(j => j.status === 'completed').length;
+      const failed = Array.from(activeJobs.values()).filter(j => j.status === 'failed').length;
+      const pending = Array.from(activeJobs.values()).filter(j => j.status === 'pending').length;
+
+      let summary = [];
+      if (running > 0) summary.push(`<span class="log-bar-badge running">${running} Running</span>`);
+      if (pending > 0) summary.push(`<span class="log-bar-badge">${pending} Pending</span>`);
+      if (completed > 0) summary.push(`<span class="log-bar-badge completed">${completed} Completed</span>`);
+      if (failed > 0) summary.push(`<span class="log-bar-badge failed">${failed} Failed</span>`);
+
+      if (summary.length === 0) {
+        logSummaryText.textContent = 'No active jobs';
+        logBar.classList.add('hidden');
+      } else {
+        logSummaryText.innerHTML = summary.join(' ');
+        logBar.classList.remove('hidden');
+      }
+    }
+
     function addJobCard(jobId, label) {
+      // Check if job card already exists
+      if (activeJobs.has(jobId)) {
+        return activeJobs.get(jobId);
+      }
+
+      // Create card
+      const card = document.createElement('div');
+      card.className = 'log-job-card';
+      card.id = `log-job-${jobId}`;
+
+      const header = document.createElement('div');
+      header.className = 'log-job-header';
+
+      const title = document.createElement('div');
+      title.className = 'log-job-title';
+      title.textContent = label;
+
+      const status = document.createElement('div');
+      status.className = 'log-job-status';
+      status.textContent = 'queued';
+
+      header.appendChild(title);
+      header.appendChild(status);
+      card.appendChild(header);
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'log-job-progress';
+      const progressFill = document.createElement('span');
+      progressFill.className = 'log-job-progress-fill';
+      progressFill.style.width = '0%';
+      progressBar.appendChild(progressFill);
+      card.appendChild(progressBar);
+
+      const logsContainer = document.createElement('div');
+      logsContainer.className = 'log-job-logs';
+      card.appendChild(logsContainer);
+
+      const actions = document.createElement('div');
+      actions.className = 'log-job-actions';
+
+      const toggleLogsBtn = document.createElement('button');
+      toggleLogsBtn.className = 'log-job-action-btn';
+      toggleLogsBtn.textContent = 'Show Logs';
+      toggleLogsBtn.onclick = () => {
+        const isVisible = logsContainer.classList.toggle('visible');
+        toggleLogsBtn.textContent = isVisible ? 'Hide Logs' : 'Show Logs';
+        jobData.logsVisible = isVisible;
+      };
+      actions.appendChild(toggleLogsBtn);
+
+      card.appendChild(actions);
+
+      logJobList.prepend(card);
+
+      const jobData = {
+        card,
+        status: 'pending',
+        logsVisible: false,
+        lastLogCount: 0,
+        statusEl: status,
+        progressFill,
+        logsContainer,
+        toggleLogsBtn
+      };
+      activeJobs.set(jobId, jobData);
+      updateLogBarSummary();
+
+      // Keep old jobList for compatibility (hide it with CSS if needed)
       const wrapper = document.createElement('div');
       wrapper.className = 'job-item';
       wrapper.id = `job-${jobId}`;
-
-      const title = document.createElement('h3');
-      title.textContent = label;
-      wrapper.appendChild(title);
-
-      const status = document.createElement('div');
-      status.className = 'job-status';
-      status.textContent = 'queued';
-      wrapper.appendChild(status);
-
+      wrapper.style.display = 'none'; // Hide old-style job cards
+      const statusOld = document.createElement('div');
       const progressInfo = document.createElement('div');
-      progressInfo.className = 'job-progress-info';
-      progressInfo.style.fontSize = '0.75rem';
-      progressInfo.style.color = 'var(--muted)';
-      progressInfo.style.marginTop = '0.2rem';
+      const progressBarOld = document.createElement('div');
+      const progressFillOld = document.createElement('span');
+      progressBarOld.appendChild(progressFillOld);
+      wrapper.appendChild(statusOld);
       wrapper.appendChild(progressInfo);
-
-      const progressBar = document.createElement('div');
-      progressBar.className = 'job-progress';
-      const progressFill = document.createElement('span');
-      progressBar.appendChild(progressFill);
-      wrapper.appendChild(progressBar);
-
+      wrapper.appendChild(progressBarOld);
       jobList.prepend(wrapper);
-      return { wrapper, status, progressFill, progressInfo };
+
+      return { wrapper, status: statusOld, progressFill: progressFillOld, progressInfo };
     }
 
     async function waitForJob(jobId, onUpdate) {
@@ -4027,6 +4438,10 @@
         const response = await fetch(`/api/jobs/${jobId}`);
         if (!response.ok) break;
         const job = await response.json();
+
+        // Update log bar card
+        updateJobCard(jobId, job);
+
         if (onUpdate) onUpdate(job);
         if (job.status === 'completed' || job.status === 'failed') {
           return job;
@@ -4034,6 +4449,53 @@
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
       return { status: 'failed', message: 'job not found' };
+    }
+
+    function updateJobCard(jobId, job) {
+      const jobData = activeJobs.get(jobId);
+      if (!jobData) return;
+
+      // Update status
+      jobData.status = job.status;
+      jobData.statusEl.textContent = `${job.status}${job.message ? ' — ' + job.message : ''}`;
+
+      // Update progress
+      const progress = job.progress || 0;
+      jobData.progressFill.style.width = `${Math.min(progress, 100)}%`;
+
+      // Update progress fill class based on status
+      jobData.progressFill.classList.remove('completed', 'failed');
+      if (job.status === 'completed') {
+        jobData.progressFill.classList.add('completed');
+      } else if (job.status === 'failed') {
+        jobData.progressFill.classList.add('failed');
+      }
+
+      // Update logs
+      if (job.logs && job.logs.length > 0) {
+        if (job.logs.length !== jobData.lastLogCount) {
+          jobData.logsContainer.innerHTML = '';
+          job.logs.forEach(logLine => {
+            const logDiv = document.createElement('div');
+            logDiv.className = 'log-job-log-line';
+            logDiv.textContent = logLine;
+            jobData.logsContainer.appendChild(logDiv);
+          });
+          jobData.lastLogCount = job.logs.length;
+
+          // Auto-scroll to bottom if logs are visible
+          if (jobData.logsVisible) {
+            jobData.logsContainer.scrollTop = jobData.logsContainer.scrollHeight;
+          }
+        }
+
+        // Show button if there are logs
+        jobData.toggleLogsBtn.style.display = 'inline-block';
+      } else {
+        jobData.toggleLogsBtn.style.display = 'none';
+      }
+
+      updateLogBarSummary();
     }
 
     function renderStateKey() {
