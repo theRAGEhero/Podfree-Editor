@@ -1157,6 +1157,15 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     current_session: Optional[Dict[str, Any]] = None
 
+    def handle_one_request(self) -> None:
+        """Handle a single HTTP request, suppressing connection reset errors."""
+        try:
+            super().handle_one_request()
+        except (ConnectionResetError, BrokenPipeError):
+            # Client disconnected - this is normal (e.g., video scrubbing, page navigation)
+            # Silently ignore instead of logging traceback
+            pass
+
     def translate_path(self, path: str) -> str:
         parsed_path = urlparse(path).path
         if parsed_path.startswith("/workspace/"):
