@@ -742,9 +742,14 @@ def run_ffmpeg_proxy(job_id: str, source: Path, target: Path) -> None:
             if not line:
                 continue
             if line.startswith("out_time_ms=") and duration:
-                out_time_ms = float(line.split("=", 1)[1])
-                progress = (out_time_ms / 1_000_000.0) / duration * 100.0
-                job_manager.update_job(job_id, progress=progress)
+                time_value = line.split("=", 1)[1]
+                if time_value != "N/A":
+                    try:
+                        out_time_ms = float(time_value)
+                        progress = (out_time_ms / 1_000_000.0) / duration * 100.0
+                        job_manager.update_job(job_id, progress=progress)
+                    except ValueError:
+                        pass
                 continue
             if line.startswith("progress="):
                 job_manager.update_job(job_id, message=line.split("=", 1)[1])
