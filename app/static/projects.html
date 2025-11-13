@@ -201,15 +201,39 @@
       flex-wrap: wrap;
       padding-bottom: 0.5rem;
       border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .primary-actions button {
-      background: rgba(56, 189, 248, 0.2);
-      border-color: rgba(56, 189, 248, 0.35);
+    .primary-actions .secondary-open-buttons {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
     }
 
-    .primary-actions button:hover {
-      background: rgba(56, 189, 248, 0.32);
+    .primary-actions .secondary-open-buttons button {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.25);
+      font-size: 0.82rem;
+      padding: 0.4rem 0.8rem;
+    }
+
+    .primary-actions .secondary-open-buttons button:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .primary-actions .main-editor-button {
+      background: rgba(56, 189, 248, 0.3);
+      border-color: rgba(56, 189, 248, 0.5);
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.65rem 1.8rem;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+    }
+
+    .primary-actions .main-editor-button:hover {
+      background: rgba(56, 189, 248, 0.42);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
     }
 
     .secondary-actions {
@@ -564,10 +588,9 @@
         const primaryActions = document.createElement('div');
         primaryActions.className = 'primary-actions';
 
-        const openPlayerBtn = document.createElement('button');
-        openPlayerBtn.type = 'button';
-        openPlayerBtn.textContent = 'Editor';
-        openPlayerBtn.addEventListener('click', () => openProject(project.path, 'editor.html'));
+        // Secondary open buttons (Video and Notes) on the left
+        const secondaryOpenButtons = document.createElement('div');
+        secondaryOpenButtons.className = 'secondary-open-buttons';
 
         const openLightBtn = document.createElement('button');
         openLightBtn.type = 'button';
@@ -579,9 +602,18 @@
         openNotesBtn.textContent = 'Notes';
         openNotesBtn.addEventListener('click', () => openProject(project.path, 'notes_editor.html'));
 
+        secondaryOpenButtons.appendChild(openLightBtn);
+        secondaryOpenButtons.appendChild(openNotesBtn);
+
+        // Main Editor button on the right
+        const openPlayerBtn = document.createElement('button');
+        openPlayerBtn.type = 'button';
+        openPlayerBtn.className = 'main-editor-button';
+        openPlayerBtn.textContent = 'Editor';
+        openPlayerBtn.addEventListener('click', () => openProject(project.path, 'editor.html'));
+
+        primaryActions.appendChild(secondaryOpenButtons);
         primaryActions.appendChild(openPlayerBtn);
-        primaryActions.appendChild(openLightBtn);
-        primaryActions.appendChild(openNotesBtn);
         card.appendChild(primaryActions);
 
         // Secondary actions - File management and utilities
