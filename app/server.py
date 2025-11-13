@@ -148,6 +148,13 @@ def safe_filename(name: str) -> str:
     return (stem or "file") + suffix
 
 
+def get_user_projects_dir(username: str) -> Path:
+    """Get the projects directory for a specific user."""
+    user_dir = PROJECTS_DIR / username
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+
 class JobStatus:
     PENDING = "pending"
     RUNNING = "running"
@@ -456,15 +463,28 @@ def scan_workspace(*, refresh: bool = False) -> Optional[Dict[str, Any]]:
     return summary
 
 
-def list_projects() -> Dict[str, Any]:
+def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
+    """List projects for a specific user, or all projects if username is None."""
     projects = []
-    for project_dir in sorted(PROJECTS_DIR.iterdir()):
-        if not project_dir.is_dir():
-            continue
-        summary = summarize_directory(project_dir)
-        summary["name"] = project_dir.name
-        projects.append(summary)
-    return {"projects": projects, "root": str(PROJECTS_DIR)}
+    if username:
+        # List projects for specific user only
+        user_projects_dir = get_user_projects_dir(username)
+        for project_dir in sorted(user_projects_dir.iterdir()):
+            if not project_dir.is_dir():
+                continue
+            summary = summarize_directory(project_dir)
+            summary["name"] = project_dir.name
+            projects.append(summary)
+        return {"projects": projects, "root": str(user_projects_dir)}
+    else:
+        # List all projects (backward compatibility for env-based users)
+        for project_dir in sorted(PROJECTS_DIR.iterdir()):
+            if not project_dir.is_dir():
+                continue
+            summary = summarize_directory(project_dir)
+            summary["name"] = project_dir.name
+            projects.append(summary)
+        return {"projects": projects, "root": str(PROJECTS_DIR)}
 
 
 SCRIPT_LABELS = {
@@ -1372,7 +1392,9 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/projects":
-            self._send_json(list_projects())
+            # Get username from session for user isolation
+            username = session.get("user") if session else None
+            self._send_json(list_projects(username))
             return
 
         return super().do_GET()
@@ -1610,6 +1632,19 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "directory not found"}, status=HTTPStatus.BAD_REQUEST)
                 return
 
+            # Validate user can only access their own projects
+            username = session.get("user") if session else None
+            if username:
+                user_projects_dir = get_user_projects_dir(username)
+                try:
+                    candidate.relative_to(user_projects_dir)
+                except ValueError:
+                    self._send_json(
+                        {"error": "Access denied - workspace must be within your projects directory"},
+                        status=HTTPStatus.FORBIDDEN
+                    )
+                    return
+
             WORKSPACE_DIR = candidate
             _WORKSPACE_CACHE = None
             logger.info("Workspace set via API to %s", candidate)
@@ -1654,12 +1689,25 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "project name required"}, status=HTTPStatus.BAD_REQUEST)
                 return
             slug = slugify(str(name))
-            project_dir = (PROJECTS_DIR / slug).resolve()
-            try:
-                project_dir.relative_to(PROJECTS_DIR)
-            except ValueError:
-                self._send_json({"error": "invalid project name"}, status=HTTPStatus.BAD_REQUEST)
-                return
+
+            # Get username from session for user isolation
+            username = session.get("user") if session else None
+            if username:
+                user_projects_dir = get_user_projects_dir(username)
+                project_dir = (user_projects_dir / slug).resolve()
+                try:
+                    project_dir.relative_to(user_projects_dir)
+                except ValueError:
+                    self._send_json({"error": "invalid project name"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+            else:
+                # Backward compatibility for env-based users
+                project_dir = (PROJECTS_DIR / slug).resolve()
+                try:
+                    project_dir.relative_to(PROJECTS_DIR)
+                except ValueError:
+                    self._send_json({"error": "invalid project name"}, status=HTTPStatus.BAD_REQUEST)
+                    return
             project_dir.mkdir(parents=True, exist_ok=True)
             logger.info("Project created: %s", project_dir)
             summary = summarize_directory(project_dir)
@@ -1673,12 +1721,25 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             if not project_name:
                 self._send_json({"error": "project parameter required"}, status=HTTPStatus.BAD_REQUEST)
                 return
-            project_dir = (PROJECTS_DIR / project_name).resolve()
-            try:
-                project_dir.relative_to(PROJECTS_DIR)
-            except ValueError:
-                self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
-                return
+
+            # Get username from session for user isolation
+            username = session.get("user") if session else None
+            if username:
+                user_projects_dir = get_user_projects_dir(username)
+                project_dir = (user_projects_dir / project_name).resolve()
+                try:
+                    project_dir.relative_to(user_projects_dir)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+            else:
+                # Backward compatibility for env-based users
+                project_dir = (PROJECTS_DIR / project_name).resolve()
+                try:
+                    project_dir.relative_to(PROJECTS_DIR)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
             if not project_dir.is_dir():
                 self._send_json({"error": "project not found"}, status=HTTPStatus.NOT_FOUND)
                 return
@@ -1740,12 +1801,25 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             if not project_name:
                 self._send_json({"error": "project parameter required"}, status=HTTPStatus.BAD_REQUEST)
                 return
-            project_dir = (PROJECTS_DIR / project_name).resolve()
-            try:
-                project_dir.relative_to(PROJECTS_DIR)
-            except ValueError:
-                self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
-                return
+
+            # Get username from session for user isolation
+            username = session.get("user") if session else None
+            if username:
+                user_projects_dir = get_user_projects_dir(username)
+                project_dir = (user_projects_dir / project_name).resolve()
+                try:
+                    project_dir.relative_to(user_projects_dir)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+            else:
+                # Backward compatibility for env-based users
+                project_dir = (PROJECTS_DIR / project_name).resolve()
+                try:
+                    project_dir.relative_to(PROJECTS_DIR)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
             if not project_dir.is_dir():
                 self._send_json({"error": "project not found"}, status=HTTPStatus.NOT_FOUND)
                 return
@@ -1781,12 +1855,25 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             if not name:
                 self._send_json({"error": "project name required"}, status=HTTPStatus.BAD_REQUEST)
                 return
-            project_dir = (PROJECTS_DIR / name).resolve()
-            try:
-                project_dir.relative_to(PROJECTS_DIR)
-            except ValueError:
-                self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
-                return
+
+            # Get username from session for user isolation
+            username = session.get("user") if session else None
+            if username:
+                user_projects_dir = get_user_projects_dir(username)
+                project_dir = (user_projects_dir / name).resolve()
+                try:
+                    project_dir.relative_to(user_projects_dir)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+            else:
+                # Backward compatibility for env-based users
+                project_dir = (PROJECTS_DIR / name).resolve()
+                try:
+                    project_dir.relative_to(PROJECTS_DIR)
+                except ValueError:
+                    self._send_json({"error": "invalid project"}, status=HTTPStatus.BAD_REQUEST)
+                    return
 
             if not project_dir.exists():
                 self._send_json({"status": "not_found"})
