@@ -350,7 +350,7 @@
     }
 
     .toolbox {
-      flex: 0 0 280px;
+      flex: 1 1 100%;
       min-width: 260px;
       gap: 1rem;
     }
@@ -1346,6 +1346,13 @@
       font-size: 0.85rem;
     }
 
+    @media (min-width: 961px) {
+      .tool-list, .job-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
     @media (max-width: 960px) {
       .toolbox {
         flex: 1 1 100%;
@@ -1355,6 +1362,9 @@
       }
       .transcript-scroll {
         max-height: none;
+      }
+      .tool-list, .job-list {
+        flex-direction: column;
       }
     }
   </style>
@@ -1429,19 +1439,21 @@
       <div class="edit-controls">
         <label>
           <input type="checkbox" id="selection-mode-toggle">
-          Selection Mode
+          <span style="cursor: default;">🖱️ Select Mode</span>
         </label>
-        <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled>✕</button>
-        <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>Restore Selected</button>
+        <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
+        <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
         <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
         <button type="button" id="save-edits-btn" class="btn-save" title="Save edits">💾 Save Edits</button>
-        <button type="button" id="export-video-btn" class="btn-export" title="Export edited video">Export Video</button>
-        <button type="button" id="export-audio-btn" class="btn-export" title="Export edited audio">Export Audio</button>
         <span id="word-stats" class="stats"></span>
       </div>
       <div id="transcript" class="transcript-scroll">
         <p>Open a project with a transcript to preview it here.</p>
       </div>
+    </section>
+    <section class="panel export-controls" style="padding: 1rem; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+      <button type="button" id="export-video-btn" class="btn-export" title="Export edited video">Export Video</button>
+      <button type="button" id="export-audio-btn" class="btn-export" title="Export edited audio">Export Audio</button>
     </section>
     <aside class="panel toolbox">
       <div class="toolbox-header">
@@ -1601,6 +1613,8 @@
     let selectionMode = false;
     let selectedWords = new Set();
     let deletedWords = new Set();
+    let hasUnsavedChanges = false;
+    let savedDeletedWords = new Set();
     let playbackTrackingInterval = null;
     let userIsScrolling = false;
     let scrollTimeout = null;
@@ -2822,6 +2836,21 @@
       updateWordStats();
     }
 
+    function checkForUnsavedChanges() {
+      // Compare current deletedWords with savedDeletedWords
+      if (deletedWords.size !== savedDeletedWords.size) {
+        hasUnsavedChanges = true;
+        return;
+      }
+      for (const index of deletedWords) {
+        if (!savedDeletedWords.has(index)) {
+          hasUnsavedChanges = true;
+          return;
+        }
+      }
+      hasUnsavedChanges = false;
+    }
+
     function toggleWordDeleted(index) {
       if (deletedWords.has(index)) {
         deletedWords.delete(index);
@@ -2837,6 +2866,7 @@
         restoreSelectedBtn.disabled = !hasDeletedSelected;
       }
 
+      checkForUnsavedChanges();
       updateWordStats();
     }
 
@@ -2849,6 +2879,7 @@
       });
       selectedWords.clear();
       if (deleteSelectedBtn) deleteSelectedBtn.disabled = true;
+      checkForUnsavedChanges();
       updateWordStats();
     }
 
@@ -2863,6 +2894,7 @@
       });
       selectedWords.clear();
       if (restoreSelectedBtn) restoreSelectedBtn.disabled = true;
+      checkForUnsavedChanges();
       updateWordStats();
     }
 
@@ -2994,6 +3026,10 @@
           saveEditsBtn.textContent = '💾 Save Edits';
         }, 2000);
 
+        // Update saved state
+        savedDeletedWords = new Set(deletedWords);
+        hasUnsavedChanges = false;
+
         console.log(`Saved ${data.deletedCount} deleted word indices`);
       } catch (error) {
         console.error('Save error:', error);
@@ -3029,6 +3065,10 @@
             deletedWords.add(index);
           }
 
+          // Update saved state
+          savedDeletedWords = new Set(deletedWords);
+          hasUnsavedChanges = false;
+
           // Update UI to reflect loaded edits
           updateDeletedWordsUI();
           updateWordStats();
@@ -3036,6 +3076,8 @@
           console.log(`Loaded ${data.deletedIndices.length} deleted word indices`);
         } else {
           console.log('No saved edits found for this transcript');
+          savedDeletedWords = new Set();
+          hasUnsavedChanges = false;
         }
       } catch (error) {
         console.error('Load edits error:', error);
@@ -4145,12 +4187,21 @@
     (async () => {
       const sessionValid = await checkSessionOnLoad();
       if (!sessionValid) return;
-      
+
       await applyWorkspaceFromQuery();
       await applyPendingWorkspace();
       await loadWorkspace();
       await loadScripts();
     })();
+
+    // Warn user about unsaved changes before leaving the page
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // For older browsers
+      }
+    });
   </script>
 </body>
 </html>
