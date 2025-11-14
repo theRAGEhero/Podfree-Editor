@@ -4410,7 +4410,8 @@
         statusEl: status,
         progressFill,
         logsContainer,
-        toggleLogsBtn
+        toggleLogsBtn,
+        startTime: null
       };
       activeJobs.set(jobId, jobData);
       updateLogBarSummary();
@@ -4451,16 +4452,61 @@
       return { status: 'failed', message: 'job not found' };
     }
 
+    function formatTimeRemaining(seconds) {
+      if (seconds < 60) {
+        return `${Math.round(seconds)}s`;
+      } else if (seconds < 3600) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${mins}m ${secs}s`;
+      } else {
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        return `${hours}h ${mins}m`;
+      }
+    }
+
     function updateJobCard(jobId, job) {
       const jobData = activeJobs.get(jobId);
       if (!jobData) return;
 
       // Update status
       jobData.status = job.status;
-      jobData.statusEl.textContent = `${job.status}${job.message ? ' — ' + job.message : ''}`;
+
+      // Calculate time estimation for running jobs with progress
+      let statusText = job.status;
+      const progress = job.progress || 0;
+
+      if (job.status === 'running' && progress > 0) {
+        // Track start time when job first makes progress
+        if (!jobData.startTime && progress > 1) {
+          jobData.startTime = Date.now();
+        }
+
+        // Calculate time remaining based on elapsed time and progress
+        if (jobData.startTime && progress > 1 && progress < 99) {
+          const elapsed = (Date.now() - jobData.startTime) / 1000; // seconds
+          const estimatedTotal = (elapsed / progress) * 100;
+          const timeRemaining = estimatedTotal - elapsed;
+
+          // Only show estimate for proxy jobs (they're the slowest)
+          const isProxyJob = job.type === 'proxy' || (job.label && job.label.toLowerCase().includes('proxy'));
+
+          if (isProxyJob && timeRemaining > 3 && timeRemaining < 7200) {
+            statusText = `${job.status} — ${Math.round(progress)}% (~${formatTimeRemaining(timeRemaining)} left)`;
+          } else if (job.message) {
+            statusText = `${job.status} — ${job.message}`;
+          }
+        } else if (job.message) {
+          statusText = `${job.status} — ${job.message}`;
+        }
+      } else if (job.message) {
+        statusText = `${job.status} — ${job.message}`;
+      }
+
+      jobData.statusEl.textContent = statusText;
 
       // Update progress
-      const progress = job.progress || 0;
       jobData.progressFill.style.width = `${Math.min(progress, 100)}%`;
 
       // Update progress fill class based on status
