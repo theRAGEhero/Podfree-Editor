@@ -464,13 +464,14 @@
       max-width: 70%;
       padding: 0.75rem 1rem;
       border-radius: 16px;
-      background: rgba(148, 163, 184, 0.16);
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+      background: rgba(148, 163, 184, 0.28);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.24);
+      border: 1px solid rgba(148, 163, 184, 0.15);
     }
 
     .transcript-entry p {
       margin: 0;
-      color: var(--text);
+      color: #f8fafc;
       font-size: 0.94rem;
       line-height: 1.6;
     }
@@ -479,7 +480,7 @@
       font-size: 0.76rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: #cbd5e1;
     }
 
     .transcript-entry time {
@@ -491,12 +492,14 @@
     }
 
     .transcript-entry.speaker-interviewer {
-      background: rgba(56, 189, 248, 0.22);
+      background: rgba(56, 189, 248, 0.35);
+      border-color: rgba(56, 189, 248, 0.25);
       align-self: flex-start;
     }
 
     .transcript-entry.speaker-guest {
-      background: rgba(74, 222, 128, 0.22);
+      background: rgba(74, 222, 128, 0.35);
+      border-color: rgba(74, 222, 128, 0.25);
       align-self: flex-end;
     }
 
@@ -509,12 +512,14 @@
     }
 
     .transcript-entry.speaker-narration {
-      background: rgba(148, 163, 184, 0.16);
+      background: rgba(148, 163, 184, 0.28);
+      border-color: rgba(148, 163, 184, 0.15);
       align-self: center;
     }
 
     .transcript-entry.speaker-other {
-      background: rgba(148, 163, 184, 0.16);
+      background: rgba(148, 163, 184, 0.28);
+      border-color: rgba(148, 163, 184, 0.15);
     }
 
     /* Word-level editing styles */
@@ -547,8 +552,9 @@
 
     .transcript-entry .word.deleted {
       text-decoration: line-through;
-      opacity: 0.4;
-      color: #ef4444;
+      opacity: 0.65;
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.15);
     }
 
     .transcript-scroll.selecting .transcript-entry .word {
