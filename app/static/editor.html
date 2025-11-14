@@ -3660,15 +3660,15 @@
           videoExportCompleted = true;
           saveRenderState('video');
           updateExportButtonStyles();
-          alert(`Video render completed! Output: ${data.output_file}`);
+          addLogMessage(`Video render completed! Output: ${data.output_file}`, 'success');
         } else {
-          alert(`Video render failed: ${job.message || 'Unknown error'}`);
+          addLogMessage(`Video render failed: ${job.message || 'Unknown error'}`, 'error');
         }
 
         await loadWorkspace();
       } catch (error) {
         console.error('Render error:', error);
-        alert(`Render failed: ${error.message}`);
+        addLogMessage(`Render failed: ${error.message}`, 'error');
       } finally {
         exportVideoBtn.disabled = false;
         exportVideoBtn.textContent = 'Render Video';
@@ -3729,15 +3729,15 @@
           audioExportCompleted = true;
           saveRenderState('audio');
           updateExportButtonStyles();
-          alert(`Audio render completed! Output: ${data.output_file}`);
+          addLogMessage(`Audio render completed! Output: ${data.output_file}`, 'success');
         } else {
-          alert(`Audio render failed: ${job.message || 'Unknown error'}`);
+          addLogMessage(`Audio render failed: ${job.message || 'Unknown error'}`, 'error');
         }
 
         await loadWorkspace();
       } catch (error) {
         console.error('Render error:', error);
-        alert(`Audio render failed: ${error.message}`);
+        addLogMessage(`Audio render failed: ${error.message}`, 'error');
       } finally {
         exportAudioBtn.disabled = false;
         exportAudioBtn.textContent = 'Render Audio';
@@ -3746,7 +3746,7 @@
 
     async function saveTranscriptEdits() {
       if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
-        alert('Cannot save: No project or transcript loaded');
+        addLogMessage('Cannot save: No project or transcript loaded', 'error');
         return;
       }
 
@@ -3756,7 +3756,6 @@
 
       try {
         saveEditsBtn.disabled = true;
-        saveEditsBtn.textContent = '💾 Saving...';
 
         const response = await fetch('/api/save-transcript-edits', {
           method: 'POST',
@@ -3773,20 +3772,15 @@
           throw new Error(data.error || 'Save failed');
         }
 
-        saveEditsBtn.textContent = '💾 Saved!';
-        setTimeout(() => {
-          saveEditsBtn.textContent = '💾 Save Edits';
-        }, 2000);
-
         // Update saved state
         savedDeletedWords = new Set(deletedWords);
         hasUnsavedChanges = false;
 
+        addLogMessage(`Saved ${data.deletedCount} deleted word edits`, 'success');
         console.log(`Saved ${data.deletedCount} deleted word indices`);
       } catch (error) {
         console.error('Save error:', error);
-        alert(`Failed to save edits: ${error.message}`);
-        saveEditsBtn.textContent = '💾 Save Edits';
+        addLogMessage(`Failed to save edits: ${error.message}`, 'error');
       } finally {
         saveEditsBtn.disabled = false;
       }
@@ -4572,6 +4566,41 @@
         logSummaryText.innerHTML = summary.join(' ');
         logBar.classList.remove('hidden');
       }
+    }
+
+    // Add simple log message (not a job card)
+    function addLogMessage(message, type = 'info') {
+      const logId = `log-msg-${Date.now()}`;
+      const card = document.createElement('div');
+      card.className = 'log-job-card';
+      card.id = logId;
+
+      const header = document.createElement('div');
+      header.className = 'log-job-header';
+
+      const title = document.createElement('div');
+      title.className = 'log-job-title';
+      title.textContent = message;
+
+      const status = document.createElement('div');
+      status.className = 'log-job-status';
+      status.style.color = type === 'error' ? '#f87171' : type === 'success' ? '#34d399' : '#94a3b8';
+      status.textContent = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info';
+
+      header.appendChild(title);
+      header.appendChild(status);
+      card.appendChild(header);
+
+      logJobList.prepend(card);
+      logBar.classList.remove('hidden');
+
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        card.remove();
+        if (logJobList.children.length === 0 && activeJobs.size === 0) {
+          logBar.classList.add('hidden');
+        }
+      }, 10000);
     }
 
     function addJobCard(jobId, label) {
