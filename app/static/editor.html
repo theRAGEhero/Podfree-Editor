@@ -21,6 +21,16 @@
       box-sizing: border-box;
     }
 
+    ::selection {
+      background: #3b82f6;
+      color: white;
+    }
+
+    ::-moz-selection {
+      background: #3b82f6;
+      color: white;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -243,9 +253,36 @@
       gap: 0.5rem;
     }
 
-    .participant-row input {
+    .participant-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
       flex: 1 1 200px;
       min-width: 180px;
+    }
+
+    .speaker-select {
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .speaker-select:hover:not(:disabled) {
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .speaker-select:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .participant-row input {
+      width: 100%;
       padding: 0.5rem 0.7rem;
       border-radius: 10px;
       border: 1px solid rgba(148, 163, 184, 0.3);
@@ -363,11 +400,60 @@
       gap: 1rem;
     }
 
+    .transcript-container {
+      flex: 1 1 520px;
+      min-width: 380px;
+      display: flex;
+      gap: 0.5rem;
+      max-height: 76vh;
+    }
+
     .transcript-panel {
-      flex: 1 1 420px;
-      min-width: 340px;
+      flex: 1 1 auto;
+      min-width: 320px;
       max-height: 76vh;
       gap: 1.2rem;
+    }
+
+    .transcript-toolbox {
+      flex: 0 0 auto;
+      width: 56px;
+      max-height: 76vh;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0.75rem 0.4rem;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+    }
+
+    .toolbox-btn {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(148, 163, 184, 0.14);
+      border-radius: 12px;
+      padding: 0.6rem 0.3rem;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1.5rem;
+      font-family: Inter, sans-serif;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      text-align: center;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbox-btn:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .toolbox-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .transcript-scroll {
@@ -388,13 +474,14 @@
       max-width: 70%;
       padding: 0.75rem 1rem;
       border-radius: 16px;
-      background: rgba(148, 163, 184, 0.16);
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+      background: rgba(148, 163, 184, 0.28);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.24);
+      border: 1px solid rgba(148, 163, 184, 0.15);
     }
 
     .transcript-entry p {
       margin: 0;
-      color: var(--text);
+      color: #f8fafc;
       font-size: 0.94rem;
       line-height: 1.6;
     }
@@ -403,7 +490,7 @@
       font-size: 0.76rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: #cbd5e1;
     }
 
     .transcript-entry time {
@@ -415,12 +502,14 @@
     }
 
     .transcript-entry.speaker-interviewer {
-      background: rgba(56, 189, 248, 0.22);
+      background: rgba(56, 189, 248, 0.35);
+      border-color: rgba(56, 189, 248, 0.25);
       align-self: flex-start;
     }
 
     .transcript-entry.speaker-guest {
-      background: rgba(74, 222, 128, 0.22);
+      background: rgba(74, 222, 128, 0.35);
+      border-color: rgba(74, 222, 128, 0.25);
       align-self: flex-end;
     }
 
@@ -433,12 +522,14 @@
     }
 
     .transcript-entry.speaker-narration {
-      background: rgba(148, 163, 184, 0.16);
+      background: rgba(148, 163, 184, 0.28);
+      border-color: rgba(148, 163, 184, 0.15);
       align-self: center;
     }
 
     .transcript-entry.speaker-other {
-      background: rgba(148, 163, 184, 0.16);
+      background: rgba(148, 163, 184, 0.28);
+      border-color: rgba(148, 163, 184, 0.15);
     }
 
     /* Word-level editing styles */
@@ -452,27 +543,30 @@
     }
 
     .transcript-entry .word:hover {
-      background: rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.5);
     }
 
     .transcript-entry .word.active {
-      background: #2563eb;
+      background: #3b82f6;
       color: white;
       padding: 3px 5px;
       font-weight: 500;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
     }
 
     .transcript-entry .word.selected {
-      background: #7c3aed;
+      background: #a855f7;
       color: white;
       padding: 3px 5px;
       font-weight: 500;
+      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.4);
     }
 
     .transcript-entry .word.deleted {
       text-decoration: line-through;
-      opacity: 0.4;
-      color: #ef4444;
+      opacity: 0.65;
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.15);
     }
 
     .transcript-scroll.selecting .transcript-entry .word {
@@ -610,28 +704,6 @@
     }
 
     .edit-controls .btn-save:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .export-controls .btn-export {
-      border: 1px solid rgba(148, 163, 184, 0.24);
-      background: rgba(148, 163, 184, 0.14);
-      border-radius: 14px;
-      padding: 0.55rem 0.8rem;
-      color: var(--text);
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: background 0.2s ease, border 0.2s ease;
-      font-weight: 500;
-    }
-
-    .export-controls .btn-export:hover {
-      background: rgba(56, 189, 248, 0.18);
-      border-color: rgba(56, 189, 248, 0.4);
-    }
-
-    .export-controls .btn-export:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -777,6 +849,46 @@
     .version-toggle button:disabled {
       opacity: 0.45;
       cursor: wait;
+    }
+
+    .speed-selector {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 6px;
+      padding: 0.25rem;
+      gap: 0.25rem;
+      z-index: 10;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .speed-selector button {
+      border: none;
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      min-width: 38px;
+    }
+
+    .speed-selector button:hover {
+      background: rgba(148, 163, 184, 0.25);
+      color: rgba(241, 245, 249, 0.95);
+    }
+
+    .speed-selector button.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
     }
 
     .status {
@@ -1642,9 +1754,8 @@
       <div class="brand-actions">
         <nav class="top-nav">
           <a class="nav-link" href="projects.html">Projects</a>
-          <a class="nav-link workspace-required active" href="editor.html">Editor</a>
-          <a class="nav-link workspace-required" href="light_editor.html">Video</a>
-          <a class="nav-link workspace-required" href="notes_editor.html">Notes</a>
+          <a class="nav-link workspace-required active" href="editor.html">↳ Editor</a>
+          <a class="nav-link workspace-required" href="notes_editor.html">↳ Notes</a>
           <a class="nav-link" href="about.html">About</a>
           <a class="nav-link" href="#" id="logout-link">Logout</a>
         </nav>
@@ -1669,8 +1780,26 @@
     <form id="participant-form" class="participant-form">
       <label for="interviewer-input">Participants</label>
       <div class="participant-row">
-        <input id="interviewer-input" type="text" placeholder="Interviewer name" disabled />
-        <input id="guest-input" type="text" placeholder="Guest name" disabled />
+        <div class="participant-field">
+          <select id="interviewer-speaker-select" class="speaker-select" disabled>
+            <option value="null">No Speaker ID</option>
+            <option value="0">Speaker 0</option>
+            <option value="1">Speaker 1</option>
+            <option value="2">Speaker 2</option>
+            <option value="3">Speaker 3</option>
+          </select>
+          <input id="interviewer-input" type="text" placeholder="Interviewer name" disabled />
+        </div>
+        <div class="participant-field">
+          <select id="guest-speaker-select" class="speaker-select" disabled>
+            <option value="null">No Speaker ID</option>
+            <option value="0">Speaker 0</option>
+            <option value="1">Speaker 1</option>
+            <option value="2">Speaker 2</option>
+            <option value="3">Speaker 3</option>
+          </select>
+          <input id="guest-input" type="text" placeholder="Guest name" disabled />
+        </div>
         <button id="participant-save" type="submit" disabled>Save</button>
         <span id="participant-status" class="participant-status">Open a project from Projects →</span>
       </div>
@@ -1688,32 +1817,40 @@
         <div class="loader-bar"><div id="loader-progress" class="loader-bar__fill"></div></div>
         <p id="loader-text" class="loader-text">Starting job…</p>
       </div>
+      <div class="speed-selector" id="speed-selector">
+        <button type="button" data-speed="1" class="active">1×</button>
+        <button type="button" data-speed="1.2">1.2×</button>
+        <button type="button" data-speed="1.5">1.5×</button>
+        <button type="button" data-speed="2">2×</button>
+      </div>
       <div class="version-toggle" id="version-toggle">
         <button type="button" data-role="original">HD</button>
         <button type="button" class="active" data-role="proxy">SD</button>
       </div>
     </section>
-    <section class="panel transcript-panel">
-      <div class="transcript-header">
-        <h2>Transcript</h2>
-        <span id="transcript-status" class="status-badge">Idle</span>
-      </div>
-      <div class="edit-controls">
-        <button type="button" id="selection-mode-btn" class="btn-select" title="Toggle selection mode">🖱️</button>
-        <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
-        <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
-        <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
-        <button type="button" id="save-edits-btn" class="btn-save" title="Save edits">💾 Save Edits</button>
-        <span id="word-stats" class="stats"></span>
-      </div>
-      <div id="transcript" class="transcript-scroll">
-        <p>Open a project with a transcript to preview it here.</p>
-      </div>
-    </section>
-    <section class="panel export-controls" style="padding: 1rem; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
-      <button type="button" id="export-video-btn" class="btn-export" title="Render edited video">Render Video</button>
-      <button type="button" id="export-audio-btn" class="btn-export" title="Render edited audio">Render Audio</button>
-    </section>
+    <div class="transcript-container">
+      <section class="panel transcript-panel">
+        <div class="transcript-header">
+          <h2>Transcript</h2>
+          <span id="transcript-status" class="status-badge">Idle</span>
+        </div>
+        <div class="edit-controls">
+          <button type="button" id="selection-mode-btn" class="btn-select" title="Toggle selection mode">🖱️</button>
+          <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
+          <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
+          <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
+          <span id="word-stats" class="stats"></span>
+        </div>
+        <div id="transcript" class="transcript-scroll">
+          <p>Open a project with a transcript to preview it here.</p>
+        </div>
+      </section>
+      <aside class="transcript-toolbox">
+        <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾</button>
+        <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">🎬</button>
+        <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">🎙️</button>
+      </aside>
+    </div>
     <aside class="panel toolbox">
       <div class="toolbox-header">
         <h2 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
@@ -1794,6 +1931,18 @@
     </div>
   </div>
 
+  <div id="media-preview-modal" class="file-modal hidden" role="dialog" aria-modal="true" aria-labelledby="media-preview-title">
+    <div class="file-modal-dialog" style="max-width: 900px;">
+      <div class="file-modal-header">
+        <h2 id="media-preview-title">Media Preview</h2>
+        <button type="button" id="media-preview-close" class="icon-button small" aria-label="Close media preview">&times;</button>
+      </div>
+      <div class="file-modal-body" style="padding: 0;">
+        <div id="media-preview-body" style="display: flex; align-items: center; justify-content: center; background: #000; min-height: 400px;"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="unsaved-changes-modal" class="file-modal hidden" role="dialog" aria-modal="true" style="z-index: 10000;">
     <div class="file-modal-dialog" style="max-width: 400px;">
       <div class="file-modal-header">
@@ -1812,8 +1961,8 @@
 
   <script>
     function redirectToLogin() {
-      const current = window.location.pathname + window.location.search;
-      const next = encodeURIComponent(current);
+      // Always redirect to Projects page after re-login, not back to Editor
+      const next = encodeURIComponent('/projects.html');
       window.location.replace(`/login.html?next=${next}`);
     }
 
@@ -1851,6 +2000,7 @@
     const versionToggle = document.getElementById('version-toggle');
     const originalButton = versionToggle ? versionToggle.querySelector('[data-role="original"]') : null;
     const proxyButton = versionToggle ? versionToggle.querySelector('[data-role="proxy"]') : null;
+    const speedSelector = document.getElementById('speed-selector');
     const toolList = document.getElementById('tool-list');
     const jobList = document.getElementById('job-list');
     const refreshScriptsBtn = document.getElementById('refresh-scripts');
@@ -1862,6 +2012,8 @@
     const participantForm = document.getElementById('participant-form');
     const interviewerInput = document.getElementById('interviewer-input');
     const guestInput = document.getElementById('guest-input');
+    const interviewerSpeakerSelect = document.getElementById('interviewer-speaker-select');
+    const guestSpeakerSelect = document.getElementById('guest-speaker-select');
     const participantSave = document.getElementById('participant-save');
     const participantStatus = document.getElementById('participant-status');
     const transcriptEl = document.getElementById('transcript');
@@ -1898,6 +2050,10 @@
     const coverPreviewModal = document.getElementById('cover-preview-modal');
     const coverPreviewClose = document.getElementById('cover-preview-close');
     const coverPreviewBody = document.getElementById('cover-preview-body');
+    const mediaPreviewModal = document.getElementById('media-preview-modal');
+    const mediaPreviewClose = document.getElementById('media-preview-close');
+    const mediaPreviewBody = document.getElementById('media-preview-body');
+    const mediaPreviewTitle = document.getElementById('media-preview-title');
     const fileUploadInput = document.getElementById('file-upload-input');
 
     let workspaceInfo = null;
@@ -1905,9 +2061,11 @@
     let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
     let workspaceSources = { original: null, proxy: null };
     let currentSourceRole = 'proxy';
+    let currentSpeed = 1.0;
     const scriptButtons = new Map();
     const scriptStateCache = { key: null, data: {} };
     let transcriptSource = { kind: null, name: null, url: null };
+    let currentTranscriptSegments = [];
     let wordSpans = [];
     let activeWordIndex = -1;
     let selectionMode = false;
@@ -1922,11 +2080,14 @@
     let videoExportCompleted = false;
     let audioExportCompleted = false;
     let playbackTrackingInterval = null;
+    let isCurrentlySeeking = false;
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
     let guestName = '';
     let interviewerName = '';
+    let interviewerSpeakerId = 'null';  // Default to "No Speaker ID" for transcripts without diarization
+    let guestSpeakerId = 'null';
     const fileManagerState = {
       currentDir: '.',
       entries: [],
@@ -1971,6 +2132,10 @@
 
     if (coverPreviewClose) {
       coverPreviewClose.addEventListener('click', closeCoverPreview);
+    }
+
+    if (mediaPreviewClose) {
+      mediaPreviewClose.addEventListener('click', closeMediaPreview);
     }
 
     if (fileDeleteSelectedBtn) {
@@ -2221,6 +2386,10 @@
 
       // Escape key for modals
       if (event.key !== 'Escape') return;
+      if (mediaPreviewModal && !mediaPreviewModal.classList.contains('hidden')) {
+        closeMediaPreview();
+        return;
+      }
       if (coverPreviewModal && !coverPreviewModal.classList.contains('hidden')) {
         closeCoverPreview();
         return;
@@ -2229,6 +2398,41 @@
         closeFileManager();
       }
     });
+
+    // Speaker dropdown auto-swap logic
+    if (interviewerSpeakerSelect && guestSpeakerSelect) {
+      interviewerSpeakerSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === guestSpeakerSelect.value) {
+          // Swap: if interviewer selects what guest has, swap them
+          guestSpeakerSelect.value = interviewerSpeakerId === null ? 'null' : String(interviewerSpeakerId);
+        }
+        // Handle both numeric speaker IDs and 'null' for no speaker ID
+        interviewerSpeakerId = selectedValue === 'null' ? null : parseInt(selectedValue, 10);
+        const guestValue = guestSpeakerSelect.value;
+        guestSpeakerId = guestValue === 'null' ? null : parseInt(guestValue, 10);
+        // Rebuild speaker mapping with new assignments
+        if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+          renderTranscript(currentTranscriptSegments);
+        }
+      });
+
+      guestSpeakerSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === interviewerSpeakerSelect.value) {
+          // Swap: if guest selects what interviewer has, swap them
+          interviewerSpeakerSelect.value = guestSpeakerId === null ? 'null' : String(guestSpeakerId);
+        }
+        // Handle both numeric speaker IDs and 'null' for no speaker ID
+        guestSpeakerId = selectedValue === 'null' ? null : parseInt(selectedValue, 10);
+        const interviewerValue = interviewerSpeakerSelect.value;
+        interviewerSpeakerId = interviewerValue === 'null' ? null : parseInt(interviewerValue, 10);
+        // Rebuild speaker mapping with new assignments
+        if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+          renderTranscript(currentTranscriptSegments);
+        }
+      });
+    }
 
     if (participantForm) {
       participantForm.addEventListener('submit', async (event) => {
@@ -2259,7 +2463,19 @@
           lastNotesContent = updated;
           interviewerName = nextInterviewer;
           guestName = nextGuest;
+          // Save speaker IDs to localStorage
+          if (workspaceProjectName) {
+            const speakerMapping = {
+              interviewerSpeakerId: interviewerSpeakerId,
+              guestSpeakerId: guestSpeakerId
+            };
+            localStorage.setItem(`speaker-mapping-${workspaceProjectName}`, JSON.stringify(speakerMapping));
+          }
           updateParticipantDisplay();
+          // Rebuild speaker mapping with updated names
+          if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+            renderTranscript(currentTranscriptSegments);
+          }
           setParticipantFormState({ disabled: false, interviewer: nextInterviewer, guest: nextGuest, status: `Saved at ${new Date().toLocaleTimeString()}` });
         } catch (error) {
           console.error(error);
@@ -2272,7 +2488,8 @@
     function updateBodyModalState() {
       const filesOpen = fileManagerModal && !fileManagerModal.classList.contains('hidden');
       const coversOpen = coverPreviewModal && !coverPreviewModal.classList.contains('hidden');
-      if (filesOpen || coversOpen) {
+      const mediaOpen = mediaPreviewModal && !mediaPreviewModal.classList.contains('hidden');
+      if (filesOpen || coversOpen || mediaOpen) {
         document.body.classList.add('modal-open');
       } else {
         document.body.classList.remove('modal-open');
@@ -2328,6 +2545,12 @@
       }
       if (guestInput) {
         guestInput.disabled = disabled;
+      }
+      if (interviewerSpeakerSelect) {
+        interviewerSpeakerSelect.disabled = disabled;
+      }
+      if (guestSpeakerSelect) {
+        guestSpeakerSelect.disabled = disabled;
       }
       if (participantStatus) {
         participantStatus.textContent = nextStatus;
@@ -2491,7 +2714,12 @@
       } else {
         nameButton.addEventListener('click', () => {
           const url = workspaceUrl(entry.path);
-          triggerDownload(url, entry.name);
+          const mediaInfo = isMediaFile(entry.name);
+          if (mediaInfo.isMedia) {
+            openMediaPreview(entry.name, url);
+          } else {
+            triggerDownload(url, entry.name);
+          }
         });
       }
       row.appendChild(nameButton);
@@ -2906,20 +3134,38 @@
       const interviewerLabel = interviewerName || 'Interviewer';
       const guestLabel = guestName || 'Guest';
 
+      // Use manual speaker ID assignments
       encountered.forEach((entry, index) => {
-        if (!assigned.has('interviewer')) {
+        const numeric = Number.isFinite(entry.numeric) ? entry.numeric : null;
+
+        // Check if this entry matches the manually assigned interviewer speaker ID
+        if (numeric === interviewerSpeakerId || entry.raw === interviewerSpeakerId || entry.raw === String(interviewerSpeakerId)) {
           assign(entry, 'interviewer', interviewerLabel);
           return;
         }
-        if (!assigned.has('guest') && index > 0) {
+
+        // Check if this entry matches the manually assigned guest speaker ID
+        if (numeric === guestSpeakerId || entry.raw === guestSpeakerId || entry.raw === String(guestSpeakerId)) {
           assign(entry, 'guest', guestLabel);
           return;
         }
-        const numeric = Number.isFinite(entry.numeric) ? entry.numeric : null;
+
+        // Otherwise assign as other
         const rawLabel = typeof entry.raw === 'string' ? entry.raw.trim() : '';
         const label = rawLabel || `Speaker ${Number.isFinite(numeric) ? numeric : index + 1}`;
         assign(entry, 'other', label);
       });
+
+      // Handle null/undefined speakers if they're assigned to interviewer or guest
+      if (interviewerSpeakerId === null) {
+        speakerMap.set(null, { role: 'interviewer', label: interviewerLabel });
+        speakerMap.set(undefined, { role: 'interviewer', label: interviewerLabel });
+      }
+      if (guestSpeakerId === null) {
+        speakerMap.set(null, { role: 'guest', label: guestLabel });
+        speakerMap.set(undefined, { role: 'guest', label: guestLabel });
+      }
+
       speakerMap = map;
     }
 
@@ -2993,6 +3239,9 @@
         return;
       }
       transcriptStatus.textContent = 'Ready';
+
+      // Store segments globally for re-rendering when speaker mapping changes
+      currentTranscriptSegments = segments;
 
       // Clean up state
       wordSpans = [];
@@ -3235,8 +3484,13 @@
 
       const originalTime = formatDuration(totalDuration);
       const editedTime = formatDuration(editedDuration);
+      const savedTime = formatDuration(deletedDuration);
 
-      wordStatsEl.textContent = `${total} words • ${deleted} deleted • ${selected} selected • ${originalTime} → ${editedTime}`;
+      if (deletedDuration > 0) {
+        wordStatsEl.textContent = `Final: ${editedTime} • Saved: ${savedTime}`;
+      } else {
+        wordStatsEl.textContent = `Final: ${editedTime}`;
+      }
     }
 
     function toggleSelectionMode() {
@@ -3435,7 +3689,6 @@
 
       try {
         exportVideoBtn.disabled = true;
-        exportVideoBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-video', {
           method: 'POST',
@@ -3450,8 +3703,6 @@
         if (!response.ok) {
           throw new Error(data.error || 'Render failed');
         }
-
-        exportVideoBtn.textContent = 'Render Video';
 
         const card = addJobCard(data.job_id, `Render Video`);
         const job = await waitForJob(data.job_id, (update) => {
@@ -3471,18 +3722,17 @@
           videoExportCompleted = true;
           saveRenderState('video');
           updateExportButtonStyles();
-          alert(`Video render completed! Output: ${data.output_file}`);
+          addLogMessage(`Video render completed! Output: ${data.output_file}`, 'success');
         } else {
-          alert(`Video render failed: ${job.message || 'Unknown error'}`);
+          addLogMessage(`Video render failed: ${job.message || 'Unknown error'}`, 'error');
         }
 
         await loadWorkspace();
       } catch (error) {
         console.error('Render error:', error);
-        alert(`Render failed: ${error.message}`);
+        addLogMessage(`Render failed: ${error.message}`, 'error');
       } finally {
         exportVideoBtn.disabled = false;
-        exportVideoBtn.textContent = 'Render Video';
       }
     }
 
@@ -3504,7 +3754,6 @@
 
       try {
         exportAudioBtn.disabled = true;
-        exportAudioBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-audio', {
           method: 'POST',
@@ -3519,8 +3768,6 @@
         if (!response.ok) {
           throw new Error(data.error || 'Render failed');
         }
-
-        exportAudioBtn.textContent = 'Render Audio';
 
         const card = addJobCard(data.job_id, `Render Audio`);
         const job = await waitForJob(data.job_id, (update) => {
@@ -3540,24 +3787,23 @@
           audioExportCompleted = true;
           saveRenderState('audio');
           updateExportButtonStyles();
-          alert(`Audio render completed! Output: ${data.output_file}`);
+          addLogMessage(`Audio render completed! Output: ${data.output_file}`, 'success');
         } else {
-          alert(`Audio render failed: ${job.message || 'Unknown error'}`);
+          addLogMessage(`Audio render failed: ${job.message || 'Unknown error'}`, 'error');
         }
 
         await loadWorkspace();
       } catch (error) {
         console.error('Render error:', error);
-        alert(`Audio render failed: ${error.message}`);
+        addLogMessage(`Audio render failed: ${error.message}`, 'error');
       } finally {
         exportAudioBtn.disabled = false;
-        exportAudioBtn.textContent = 'Render Audio';
       }
     }
 
     async function saveTranscriptEdits() {
       if (!workspaceProjectName || !transcriptSource || !transcriptSource.name) {
-        alert('Cannot save: No project or transcript loaded');
+        addLogMessage('Cannot save: No project or transcript loaded', 'error');
         return;
       }
 
@@ -3567,7 +3813,6 @@
 
       try {
         saveEditsBtn.disabled = true;
-        saveEditsBtn.textContent = '💾 Saving...';
 
         const response = await fetch('/api/save-transcript-edits', {
           method: 'POST',
@@ -3584,20 +3829,15 @@
           throw new Error(data.error || 'Save failed');
         }
 
-        saveEditsBtn.textContent = '💾 Saved!';
-        setTimeout(() => {
-          saveEditsBtn.textContent = '💾 Save Edits';
-        }, 2000);
-
         // Update saved state
         savedDeletedWords = new Set(deletedWords);
         hasUnsavedChanges = false;
 
+        addLogMessage(`Saved ${data.deletedCount} deleted word edits`, 'success');
         console.log(`Saved ${data.deletedCount} deleted word indices`);
       } catch (error) {
         console.error('Save error:', error);
-        alert(`Failed to save edits: ${error.message}`);
-        saveEditsBtn.textContent = '💾 Save Edits';
+        addLogMessage(`Failed to save edits: ${error.message}`, 'error');
       } finally {
         saveEditsBtn.disabled = false;
       }
@@ -3669,7 +3909,7 @@
       if (playbackTrackingInterval) return; // Already tracking
 
       playbackTrackingInterval = setInterval(() => {
-        if (media.paused) return;
+        if (media.paused || isCurrentlySeeking) return;
 
         const currentTime = media.currentTime;
 
@@ -3718,6 +3958,7 @@
         clearInterval(playbackTrackingInterval);
         playbackTrackingInterval = null;
       }
+      isCurrentlySeeking = false; // Reset seeking flag when tracking stops
     }
 
     function skipToNextNonDeleted() {
@@ -3729,11 +3970,31 @@
       );
 
       if (nextWordIndex >= 0) {
+        isCurrentlySeeking = true;
         media.currentTime = wordSpans[nextWordIndex].start;
       } else {
         // No more non-deleted words - pause at end of edited content
         media.pause();
       }
+    }
+
+    function extractSpeakerId(speakerValue) {
+      // Handle null/undefined
+      if (speakerValue === null || speakerValue === undefined) {
+        return null;
+      }
+      // If it's already a number, return it
+      if (typeof speakerValue === 'number') {
+        return speakerValue;
+      }
+      // If it's a string like 'speaker_0', extract the number
+      if (typeof speakerValue === 'string') {
+        const match = speakerValue.match(/(\d+)/);
+        if (match) {
+          return parseInt(match[1], 10);
+        }
+      }
+      return null;
     }
 
     function parseTranscriptJSON(data) {
@@ -3757,7 +4018,7 @@
             seconds: Number(seconds) || 0,
             endSeconds: Number(endSeconds) || (Number(seconds) || 0),
             text,
-            speaker: item.speaker ?? item.speaker_id ?? null,
+            speaker: extractSpeakerId(item.speaker ?? item.speaker_id ?? item.madeBy ?? null),
           });
         });
         return entries;
@@ -3779,7 +4040,7 @@
             seconds: start,
             endSeconds: end,
             text,
-            speaker: utt.speaker ?? utt.speaker_id ?? null,
+            speaker: extractSpeakerId(utt.speaker ?? utt.speaker_id ?? utt.madeBy ?? null),
           });
         });
         return entries;
@@ -3801,7 +4062,7 @@
             seconds: Number(start) || 0,
             endSeconds: Number(end) || (Number(start) || 0),
             text,
-            speaker: para.speaker ?? para.speaker_id ?? null,
+            speaker: extractSpeakerId(para.speaker ?? para.speaker_id ?? para.madeBy ?? null),
           });
         });
         return entries;
@@ -3811,7 +4072,7 @@
       if (Array.isArray(words) && words.length) {
         const buffer = [];
         let currentStart = words[0]?.start ?? 0;
-        let chunkSpeaker = words[0]?.speaker ?? words[0]?.speaker_id ?? null;
+        let chunkSpeaker = extractSpeakerId(words[0]?.speaker ?? words[0]?.speaker_id ?? words[0]?.madeBy ?? null);
         words.forEach((word) => {
           if ((buffer.join(' ') + ' ' + (word.word || '')).length > 80) {
             const chunkEnd = word.start ?? word.end ?? (currentStart + Math.max(buffer.length * 0.32, 0.6));
@@ -3824,7 +4085,7 @@
             });
             buffer.length = 0;
             currentStart = word.start ?? currentStart;
-            chunkSpeaker = word.speaker ?? word.speaker_id ?? chunkSpeaker;
+            chunkSpeaker = extractSpeakerId(word.speaker ?? word.speaker_id ?? word.madeBy ?? chunkSpeaker);
           }
           if (word.word) buffer.push(word.word);
         });
@@ -3890,6 +4151,25 @@
     const currentTitle = extractTitleSection(lastNotesContent) || '';
     guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
     interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
+    // Load speaker IDs from localStorage
+    if (workspaceProjectName) {
+      const savedMapping = localStorage.getItem(`speaker-mapping-${workspaceProjectName}`);
+      if (savedMapping) {
+        try {
+          const mapping = JSON.parse(savedMapping);
+          // Load the saved values (can be null or number)
+          interviewerSpeakerId = mapping.interviewerSpeakerId !== undefined ? mapping.interviewerSpeakerId : 'null';
+          guestSpeakerId = mapping.guestSpeakerId !== undefined ? mapping.guestSpeakerId : 'null';
+          // Convert to proper dropdown value format (null → 'null', number → string)
+          const interviewerValue = interviewerSpeakerId === null ? 'null' : String(interviewerSpeakerId);
+          const guestValue = guestSpeakerId === null ? 'null' : String(guestSpeakerId);
+          if (interviewerSpeakerSelect) interviewerSpeakerSelect.value = interviewerValue;
+          if (guestSpeakerSelect) guestSpeakerSelect.value = guestValue;
+        } catch (e) {
+          console.error('Failed to parse speaker mapping:', e);
+        }
+      }
+    }
     updateParticipantDisplay();
     setTitleFormState({ disabled: false, value: currentTitle, status: 'Idle' });
     setParticipantFormState({ disabled: false, interviewer: interviewerName || '', guest: guestName || '', status: 'Idle' });
@@ -4127,8 +4407,17 @@
           if (durationEl) durationEl.textContent = formatTime(media.duration);
           const safeTime = Math.min(previousTime, Math.max(0, media.duration - 0.2));
           media.currentTime = safeTime;
+
+          // Apply current playback speed
+          if (currentSpeed && currentSpeed !== 1.0) {
+            media.playbackRate = currentSpeed;
+          }
+
           if (!wasPaused) {
-            media.play().catch(() => {});
+            media.play().catch((error) => {
+              console.error('Autoplay failed:', error);
+              addLogMessage('Autoplay blocked by browser. Click play to start.', 'info');
+            });
           }
           updateCurrentTime();
         },
@@ -4345,6 +4634,41 @@
         logSummaryText.innerHTML = summary.join(' ');
         logBar.classList.remove('hidden');
       }
+    }
+
+    // Add simple log message (not a job card)
+    function addLogMessage(message, type = 'info') {
+      const logId = `log-msg-${Date.now()}`;
+      const card = document.createElement('div');
+      card.className = 'log-job-card';
+      card.id = logId;
+
+      const header = document.createElement('div');
+      header.className = 'log-job-header';
+
+      const title = document.createElement('div');
+      title.className = 'log-job-title';
+      title.textContent = message;
+
+      const status = document.createElement('div');
+      status.className = 'log-job-status';
+      status.style.color = type === 'error' ? '#f87171' : type === 'success' ? '#34d399' : '#94a3b8';
+      status.textContent = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info';
+
+      header.appendChild(title);
+      header.appendChild(status);
+      card.appendChild(header);
+
+      logJobList.prepend(card);
+      logBar.classList.remove('hidden');
+
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        card.remove();
+        if (logJobList.children.length === 0 && activeJobs.size === 0) {
+          logBar.classList.add('hidden');
+        }
+      }, 10000);
     }
 
     function addJobCard(jobId, label) {
@@ -4828,6 +5152,55 @@
       updateBodyModalState();
     }
 
+    function isMediaFile(filename) {
+      if (!filename) return { isMedia: false, type: null };
+      const ext = filename.toLowerCase().split('.').pop();
+      const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'm4v'];
+      const audioExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'opus'];
+      if (videoExts.includes(ext)) return { isMedia: true, type: 'video' };
+      if (audioExts.includes(ext)) return { isMedia: true, type: 'audio' };
+      return { isMedia: false, type: null };
+    }
+
+    function closeMediaPreview() {
+      if (!mediaPreviewModal) return;
+      mediaPreviewModal.classList.add('hidden');
+      if (mediaPreviewBody) {
+        mediaPreviewBody.textContent = '';
+      }
+      updateBodyModalState();
+    }
+
+    function openMediaPreview(filename, url) {
+      if (!mediaPreviewModal || !url) return;
+      const mediaInfo = isMediaFile(filename);
+      if (!mediaInfo.isMedia) return;
+
+      if (mediaPreviewBody) {
+        mediaPreviewBody.textContent = '';
+      }
+
+      if (mediaPreviewTitle) {
+        mediaPreviewTitle.textContent = filename;
+      }
+
+      const mediaElement = document.createElement(mediaInfo.type);
+      mediaElement.controls = true;
+      mediaElement.style.maxWidth = '100%';
+      mediaElement.style.maxHeight = '70vh';
+
+      const source = document.createElement('source');
+      source.src = url;
+      mediaElement.appendChild(source);
+
+      if (mediaPreviewBody) {
+        mediaPreviewBody.appendChild(mediaElement);
+      }
+
+      mediaPreviewModal.classList.remove('hidden');
+      updateBodyModalState();
+    }
+
     async function runScript(scriptName, button) {
       const statusSpan = button.querySelector('.status');
       const scriptLabel = button.dataset.label || scriptName;
@@ -5030,7 +5403,10 @@
     }
 
     media.addEventListener('timeupdate', updateCurrentTime);
-    media.addEventListener('seeked', updateCurrentTime);
+    media.addEventListener('seeked', () => {
+      updateCurrentTime();
+      isCurrentlySeeking = false; // Clear seeking flag when seek completes
+    });
     media.addEventListener('loadeddata', updateCurrentTime);
 
     // Start/stop playback tracking for skipping deleted words
@@ -5041,6 +5417,52 @@
     media.addEventListener('pause', () => {
       stopPlaybackTracking();
     });
+
+    // Video error handling
+    media.addEventListener('error', (e) => {
+      console.error('Video playback error:', media.error);
+      if (media.error) {
+        console.error('Error code:', media.error.code);
+        console.error('Error message:', media.error.message);
+      }
+      addLogMessage(`Video playback error: ${media.error?.message || 'Unknown error'}`, 'error');
+    });
+
+    // Video loading feedback
+    media.addEventListener('waiting', () => {
+      console.log('Video buffering...');
+    });
+
+    media.addEventListener('canplay', () => {
+      console.log('Video ready to play');
+    });
+
+    media.addEventListener('loadstart', () => {
+      console.log('Video loading started');
+    });
+
+    media.addEventListener('loadeddata', () => {
+      console.log('Video data loaded');
+    });
+
+    // Speed selector
+    if (speedSelector) {
+      speedSelector.addEventListener('click', (e) => {
+        const button = e.target.closest('button[data-speed]');
+        if (!button) return;
+
+        currentSpeed = parseFloat(button.dataset.speed);
+
+        // Set playback rate immediately if video is ready
+        if (media && media.readyState >= 2) {
+          media.playbackRate = currentSpeed;
+        }
+
+        // Update active state
+        speedSelector.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+      });
+    }
 
     // Detect manual scrolling in transcript
     if (transcriptEl) {

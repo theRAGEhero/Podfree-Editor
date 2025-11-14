@@ -962,16 +962,17 @@ def export_video_ffmpeg(job_id: str, video_path: Path, segments: list[Dict[str, 
                 duration = seg['end'] - seg['start']
 
                 # Use re-encoding instead of copy for reliable concatenation
+                # Using high-quality settings for podcast production
                 cmd = [
                     'ffmpeg', '-y',
                     '-ss', str(start_time),
                     '-i', str(video_path),
                     '-t', str(duration),
                     '-c:v', 'libx264',
-                    '-preset', 'fast',
-                    '-crf', '23',
+                    '-preset', 'medium',  # Better compression efficiency than 'fast'
+                    '-crf', '18',  # High quality (visually lossless)
                     '-c:a', 'aac',
-                    '-b:a', '128k',
+                    '-b:a', '256k',  # High-quality audio for podcasts
                     '-movflags', '+faststart',
                     str(segment_file)
                 ]
@@ -1081,6 +1082,7 @@ def export_audio_ffmpeg(job_id: str, source_path: Path, segments: list[Dict[str,
                 start_time = seg['start']
                 duration = seg['end'] - seg['start']
 
+                # Using high-quality settings for podcast audio
                 cmd = [
                     'ffmpeg', '-y',
                     '-ss', str(start_time),
@@ -1088,7 +1090,7 @@ def export_audio_ffmpeg(job_id: str, source_path: Path, segments: list[Dict[str,
                     '-t', str(duration),
                     '-vn',  # No video
                     '-c:a', 'libmp3lame',
-                    '-b:a', '192k',
+                    '-q:a', '0',  # VBR quality 0 (highest, ~245 kbps average)
                     str(segment_file)
                 ]
 
