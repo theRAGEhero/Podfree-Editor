@@ -851,6 +851,46 @@
       cursor: wait;
     }
 
+    .speed-selector {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 6px;
+      padding: 0.25rem;
+      gap: 0.25rem;
+      z-index: 10;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .speed-selector button {
+      border: none;
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      min-width: 38px;
+    }
+
+    .speed-selector button:hover {
+      background: rgba(148, 163, 184, 0.25);
+      color: rgba(241, 245, 249, 0.95);
+    }
+
+    .speed-selector button.active {
+      background: var(--accent);
+      color: #0b1120;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+    }
+
     .status {
       color: var(--muted);
       font-size: 0.9rem;
@@ -1778,6 +1818,12 @@
         <div class="loader-bar"><div id="loader-progress" class="loader-bar__fill"></div></div>
         <p id="loader-text" class="loader-text">Starting job…</p>
       </div>
+      <div class="speed-selector" id="speed-selector">
+        <button type="button" data-speed="1" class="active">1×</button>
+        <button type="button" data-speed="1.2">1.2×</button>
+        <button type="button" data-speed="1.5">1.5×</button>
+        <button type="button" data-speed="2">2×</button>
+      </div>
       <div class="version-toggle" id="version-toggle">
         <button type="button" data-role="original">HD</button>
         <button type="button" class="active" data-role="proxy">SD</button>
@@ -1955,6 +2001,7 @@
     const versionToggle = document.getElementById('version-toggle');
     const originalButton = versionToggle ? versionToggle.querySelector('[data-role="original"]') : null;
     const proxyButton = versionToggle ? versionToggle.querySelector('[data-role="proxy"]') : null;
+    const speedSelector = document.getElementById('speed-selector');
     const toolList = document.getElementById('tool-list');
     const jobList = document.getElementById('job-list');
     const refreshScriptsBtn = document.getElementById('refresh-scripts');
@@ -5350,6 +5397,23 @@
     media.addEventListener('pause', () => {
       stopPlaybackTracking();
     });
+
+    // Speed selector
+    if (speedSelector) {
+      speedSelector.addEventListener('click', (e) => {
+        const button = e.target.closest('button[data-speed]');
+        if (!button) return;
+
+        const speed = parseFloat(button.dataset.speed);
+        if (media) {
+          media.playbackRate = speed;
+        }
+
+        // Update active state
+        speedSelector.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+      });
+    }
 
     // Detect manual scrolling in transcript
     if (transcriptEl) {
