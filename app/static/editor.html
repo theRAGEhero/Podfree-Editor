@@ -2080,6 +2080,7 @@
     let videoExportCompleted = false;
     let audioExportCompleted = false;
     let playbackTrackingInterval = null;
+    let isCurrentlySeeking = false;
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3908,7 +3909,7 @@
       if (playbackTrackingInterval) return; // Already tracking
 
       playbackTrackingInterval = setInterval(() => {
-        if (media.paused) return;
+        if (media.paused || isCurrentlySeeking) return;
 
         const currentTime = media.currentTime;
 
@@ -3957,6 +3958,7 @@
         clearInterval(playbackTrackingInterval);
         playbackTrackingInterval = null;
       }
+      isCurrentlySeeking = false; // Reset seeking flag when tracking stops
     }
 
     function skipToNextNonDeleted() {
@@ -3968,6 +3970,7 @@
       );
 
       if (nextWordIndex >= 0) {
+        isCurrentlySeeking = true;
         media.currentTime = wordSpans[nextWordIndex].start;
       } else {
         // No more non-deleted words - pause at end of edited content
@@ -5400,7 +5403,10 @@
     }
 
     media.addEventListener('timeupdate', updateCurrentTime);
-    media.addEventListener('seeked', updateCurrentTime);
+    media.addEventListener('seeked', () => {
+      updateCurrentTime();
+      isCurrentlySeeking = false; // Clear seeking flag when seek completes
+    });
     media.addEventListener('loadeddata', updateCurrentTime);
 
     // Start/stop playback tracking for skipping deleted words
