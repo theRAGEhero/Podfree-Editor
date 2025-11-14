@@ -3903,6 +3903,25 @@
       }
     }
 
+    function extractSpeakerId(speakerValue) {
+      // Handle null/undefined
+      if (speakerValue === null || speakerValue === undefined) {
+        return null;
+      }
+      // If it's already a number, return it
+      if (typeof speakerValue === 'number') {
+        return speakerValue;
+      }
+      // If it's a string like 'speaker_0', extract the number
+      if (typeof speakerValue === 'string') {
+        const match = speakerValue.match(/(\d+)/);
+        if (match) {
+          return parseInt(match[1], 10);
+        }
+      }
+      return null;
+    }
+
     function parseTranscriptJSON(data) {
       const entries = [];
       if (!data || typeof data !== 'object') {
@@ -3924,7 +3943,7 @@
             seconds: Number(seconds) || 0,
             endSeconds: Number(endSeconds) || (Number(seconds) || 0),
             text,
-            speaker: item.speaker ?? item.speaker_id ?? null,
+            speaker: extractSpeakerId(item.speaker ?? item.speaker_id ?? item.madeBy ?? null),
           });
         });
         return entries;
@@ -3946,7 +3965,7 @@
             seconds: start,
             endSeconds: end,
             text,
-            speaker: utt.speaker ?? utt.speaker_id ?? null,
+            speaker: extractSpeakerId(utt.speaker ?? utt.speaker_id ?? utt.madeBy ?? null),
           });
         });
         return entries;
@@ -3968,7 +3987,7 @@
             seconds: Number(start) || 0,
             endSeconds: Number(end) || (Number(start) || 0),
             text,
-            speaker: para.speaker ?? para.speaker_id ?? null,
+            speaker: extractSpeakerId(para.speaker ?? para.speaker_id ?? para.madeBy ?? null),
           });
         });
         return entries;
@@ -3978,7 +3997,7 @@
       if (Array.isArray(words) && words.length) {
         const buffer = [];
         let currentStart = words[0]?.start ?? 0;
-        let chunkSpeaker = words[0]?.speaker ?? words[0]?.speaker_id ?? null;
+        let chunkSpeaker = extractSpeakerId(words[0]?.speaker ?? words[0]?.speaker_id ?? words[0]?.madeBy ?? null);
         words.forEach((word) => {
           if ((buffer.join(' ') + ' ' + (word.word || '')).length > 80) {
             const chunkEnd = word.start ?? word.end ?? (currentStart + Math.max(buffer.length * 0.32, 0.6));
@@ -3991,7 +4010,7 @@
             });
             buffer.length = 0;
             currentStart = word.start ?? currentStart;
-            chunkSpeaker = word.speaker ?? word.speaker_id ?? chunkSpeaker;
+            chunkSpeaker = extractSpeakerId(word.speaker ?? word.speaker_id ?? word.madeBy ?? chunkSpeaker);
           }
           if (word.word) buffer.push(word.word);
         });
