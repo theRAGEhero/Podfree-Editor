@@ -2323,10 +2323,12 @@
         const selectedValue = event.target.value;
         if (selectedValue === guestSpeakerSelect.value) {
           // Swap: if interviewer selects what guest has, swap them
-          guestSpeakerSelect.value = String(interviewerSpeakerId);
+          guestSpeakerSelect.value = interviewerSpeakerId === null ? 'null' : String(interviewerSpeakerId);
         }
-        interviewerSpeakerId = parseInt(selectedValue, 10);
-        guestSpeakerId = parseInt(guestSpeakerSelect.value, 10);
+        // Handle both numeric speaker IDs and 'null' for no speaker ID
+        interviewerSpeakerId = selectedValue === 'null' ? null : parseInt(selectedValue, 10);
+        const guestValue = guestSpeakerSelect.value;
+        guestSpeakerId = guestValue === 'null' ? null : parseInt(guestValue, 10);
         // Rebuild speaker mapping with new assignments
         if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
           renderTranscript(currentTranscriptSegments);
@@ -2337,10 +2339,12 @@
         const selectedValue = event.target.value;
         if (selectedValue === interviewerSpeakerSelect.value) {
           // Swap: if guest selects what interviewer has, swap them
-          interviewerSpeakerSelect.value = String(guestSpeakerId);
+          interviewerSpeakerSelect.value = guestSpeakerId === null ? 'null' : String(guestSpeakerId);
         }
-        guestSpeakerId = parseInt(selectedValue, 10);
-        interviewerSpeakerId = parseInt(interviewerSpeakerSelect.value, 10);
+        // Handle both numeric speaker IDs and 'null' for no speaker ID
+        guestSpeakerId = selectedValue === 'null' ? null : parseInt(selectedValue, 10);
+        const interviewerValue = interviewerSpeakerSelect.value;
+        interviewerSpeakerId = interviewerValue === 'null' ? null : parseInt(interviewerValue, 10);
         // Rebuild speaker mapping with new assignments
         if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
           renderTranscript(currentTranscriptSegments);
@@ -3069,6 +3073,17 @@
         const label = rawLabel || `Speaker ${Number.isFinite(numeric) ? numeric : index + 1}`;
         assign(entry, 'other', label);
       });
+
+      // Handle null/undefined speakers if they're assigned to interviewer or guest
+      if (interviewerSpeakerId === null) {
+        speakerMap.set(null, { role: 'interviewer', label: interviewerLabel });
+        speakerMap.set(undefined, { role: 'interviewer', label: interviewerLabel });
+      }
+      if (guestSpeakerId === null) {
+        speakerMap.set(null, { role: 'guest', label: guestLabel });
+        speakerMap.set(undefined, { role: 'guest', label: guestLabel });
+      }
+
       speakerMap = map;
     }
 
@@ -4048,10 +4063,14 @@
       if (savedMapping) {
         try {
           const mapping = JSON.parse(savedMapping);
-          interviewerSpeakerId = mapping.interviewerSpeakerId ?? 0;
-          guestSpeakerId = mapping.guestSpeakerId ?? 1;
-          if (interviewerSpeakerSelect) interviewerSpeakerSelect.value = String(interviewerSpeakerId);
-          if (guestSpeakerSelect) guestSpeakerSelect.value = String(guestSpeakerId);
+          // Load the saved values (can be null or number)
+          interviewerSpeakerId = mapping.interviewerSpeakerId !== undefined ? mapping.interviewerSpeakerId : 'null';
+          guestSpeakerId = mapping.guestSpeakerId !== undefined ? mapping.guestSpeakerId : 'null';
+          // Convert to proper dropdown value format (null → 'null', number → string)
+          const interviewerValue = interviewerSpeakerId === null ? 'null' : String(interviewerSpeakerId);
+          const guestValue = guestSpeakerId === null ? 'null' : String(guestSpeakerId);
+          if (interviewerSpeakerSelect) interviewerSpeakerSelect.value = interviewerValue;
+          if (guestSpeakerSelect) guestSpeakerSelect.value = guestValue;
         } catch (e) {
           console.error('Failed to parse speaker mapping:', e);
         }
