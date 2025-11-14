@@ -1982,6 +1982,7 @@
     const scriptButtons = new Map();
     const scriptStateCache = { key: null, data: {} };
     let transcriptSource = { kind: null, name: null, url: null };
+    let currentTranscriptSegments = [];
     let wordSpans = [];
     let activeWordIndex = -1;
     let selectionMode = false;
@@ -2325,9 +2326,8 @@
         interviewerSpeakerId = parseInt(selectedValue, 10);
         guestSpeakerId = parseInt(guestSpeakerSelect.value, 10);
         // Rebuild speaker mapping with new assignments
-        if (allSegments && allSegments.length > 0) {
-          buildSpeakerMapping(allSegments);
-          renderTranscript();
+        if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+          renderTranscript(currentTranscriptSegments);
         }
       });
 
@@ -2340,9 +2340,8 @@
         guestSpeakerId = parseInt(selectedValue, 10);
         interviewerSpeakerId = parseInt(interviewerSpeakerSelect.value, 10);
         // Rebuild speaker mapping with new assignments
-        if (allSegments && allSegments.length > 0) {
-          buildSpeakerMapping(allSegments);
-          renderTranscript();
+        if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+          renderTranscript(currentTranscriptSegments);
         }
       });
     }
@@ -2386,9 +2385,8 @@
           }
           updateParticipantDisplay();
           // Rebuild speaker mapping with updated names
-          if (allSegments && allSegments.length > 0) {
-            buildSpeakerMapping(allSegments);
-            renderTranscript();
+          if (currentTranscriptSegments && currentTranscriptSegments.length > 0) {
+            renderTranscript(currentTranscriptSegments);
           }
           setParticipantFormState({ disabled: false, interviewer: nextInterviewer, guest: nextGuest, status: `Saved at ${new Date().toLocaleTimeString()}` });
         } catch (error) {
@@ -3142,6 +3140,9 @@
         return;
       }
       transcriptStatus.textContent = 'Ready';
+
+      // Store segments globally for re-rendering when speaker mapping changes
+      currentTranscriptSegments = segments;
 
       // Clean up state
       wordSpans = [];
