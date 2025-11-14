@@ -2377,12 +2377,12 @@
           interviewerName = nextInterviewer;
           guestName = nextGuest;
           // Save speaker IDs to localStorage
-          if (currentProjectName) {
+          if (workspaceProjectName) {
             const speakerMapping = {
               interviewerSpeakerId: interviewerSpeakerId,
               guestSpeakerId: guestSpeakerId
             };
-            localStorage.setItem(`speaker-mapping-${currentProjectName}`, JSON.stringify(speakerMapping));
+            localStorage.setItem(`speaker-mapping-${workspaceProjectName}`, JSON.stringify(speakerMapping));
           }
           updateParticipantDisplay();
           // Rebuild speaker mapping with updated names
@@ -4034,8 +4034,8 @@
     guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
     interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
     // Load speaker IDs from localStorage
-    if (currentProjectName) {
-      const savedMapping = localStorage.getItem(`speaker-mapping-${currentProjectName}`);
+    if (workspaceProjectName) {
+      const savedMapping = localStorage.getItem(`speaker-mapping-${workspaceProjectName}`);
       if (savedMapping) {
         try {
           const mapping = JSON.parse(savedMapping);
