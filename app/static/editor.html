@@ -390,8 +390,16 @@
       gap: 1rem;
     }
 
+    .transcript-container {
+      flex: 1 1 600px;
+      min-width: 480px;
+      display: flex;
+      gap: 0.75rem;
+      max-height: 76vh;
+    }
+
     .transcript-panel {
-      flex: 1 1 420px;
+      flex: 1 1 auto;
       min-width: 340px;
       max-height: 76vh;
       gap: 1.2rem;
@@ -399,12 +407,15 @@
 
     .transcript-toolbox {
       flex: 0 0 auto;
-      width: 140px;
+      width: 120px;
       max-height: 76vh;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      padding: 1rem;
+      padding: 1rem 0.75rem;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
     }
 
     .toolbox-btn {
@@ -1751,27 +1762,29 @@
         <button type="button" class="active" data-role="proxy">SD</button>
       </div>
     </section>
-    <section class="panel transcript-panel">
-      <div class="transcript-header">
-        <h2>Transcript</h2>
-        <span id="transcript-status" class="status-badge">Idle</span>
-      </div>
-      <div class="edit-controls">
-        <button type="button" id="selection-mode-btn" class="btn-select" title="Toggle selection mode">🖱️</button>
-        <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
-        <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
-        <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
-        <span id="word-stats" class="stats"></span>
-      </div>
-      <div id="transcript" class="transcript-scroll">
-        <p>Open a project with a transcript to preview it here.</p>
-      </div>
-    </section>
-    <aside class="panel transcript-toolbox">
-      <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾 Save Edits</button>
-      <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">Render Video</button>
-      <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">Render Audio</button>
-    </aside>
+    <div class="transcript-container">
+      <section class="panel transcript-panel">
+        <div class="transcript-header">
+          <h2>Transcript</h2>
+          <span id="transcript-status" class="status-badge">Idle</span>
+        </div>
+        <div class="edit-controls">
+          <button type="button" id="selection-mode-btn" class="btn-select" title="Toggle selection mode">🖱️</button>
+          <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
+          <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
+          <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
+          <span id="word-stats" class="stats"></span>
+        </div>
+        <div id="transcript" class="transcript-scroll">
+          <p>Open a project with a transcript to preview it here.</p>
+        </div>
+      </section>
+      <aside class="transcript-toolbox">
+        <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾 Save Edits</button>
+        <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">🎬 Render Video</button>
+        <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">🎙️ Render Audio</button>
+      </aside>
+    </div>
     <aside class="panel toolbox">
       <div class="toolbox-header">
         <h2 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
