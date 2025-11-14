@@ -1850,6 +1850,18 @@
     </div>
   </div>
 
+  <div id="media-preview-modal" class="file-modal hidden" role="dialog" aria-modal="true" aria-labelledby="media-preview-title">
+    <div class="file-modal-dialog" style="max-width: 900px;">
+      <div class="file-modal-header">
+        <h2 id="media-preview-title">Media Preview</h2>
+        <button type="button" id="media-preview-close" class="icon-button small" aria-label="Close media preview">&times;</button>
+      </div>
+      <div class="file-modal-body" style="padding: 0;">
+        <div id="media-preview-body" style="display: flex; align-items: center; justify-content: center; background: #000; min-height: 400px;"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="unsaved-changes-modal" class="file-modal hidden" role="dialog" aria-modal="true" style="z-index: 10000;">
     <div class="file-modal-dialog" style="max-width: 400px;">
       <div class="file-modal-header">
@@ -1956,6 +1968,10 @@
     const coverPreviewModal = document.getElementById('cover-preview-modal');
     const coverPreviewClose = document.getElementById('cover-preview-close');
     const coverPreviewBody = document.getElementById('cover-preview-body');
+    const mediaPreviewModal = document.getElementById('media-preview-modal');
+    const mediaPreviewClose = document.getElementById('media-preview-close');
+    const mediaPreviewBody = document.getElementById('media-preview-body');
+    const mediaPreviewTitle = document.getElementById('media-preview-title');
     const fileUploadInput = document.getElementById('file-upload-input');
 
     let workspaceInfo = null;
@@ -2031,6 +2047,10 @@
 
     if (coverPreviewClose) {
       coverPreviewClose.addEventListener('click', closeCoverPreview);
+    }
+
+    if (mediaPreviewClose) {
+      mediaPreviewClose.addEventListener('click', closeMediaPreview);
     }
 
     if (fileDeleteSelectedBtn) {
@@ -2281,6 +2301,10 @@
 
       // Escape key for modals
       if (event.key !== 'Escape') return;
+      if (mediaPreviewModal && !mediaPreviewModal.classList.contains('hidden')) {
+        closeMediaPreview();
+        return;
+      }
       if (coverPreviewModal && !coverPreviewModal.classList.contains('hidden')) {
         closeCoverPreview();
         return;
@@ -2378,7 +2402,8 @@
     function updateBodyModalState() {
       const filesOpen = fileManagerModal && !fileManagerModal.classList.contains('hidden');
       const coversOpen = coverPreviewModal && !coverPreviewModal.classList.contains('hidden');
-      if (filesOpen || coversOpen) {
+      const mediaOpen = mediaPreviewModal && !mediaPreviewModal.classList.contains('hidden');
+      if (filesOpen || coversOpen || mediaOpen) {
         document.body.classList.add('modal-open');
       } else {
         document.body.classList.remove('modal-open');
@@ -2597,7 +2622,12 @@
       } else {
         nameButton.addEventListener('click', () => {
           const url = workspaceUrl(entry.path);
-          triggerDownload(url, entry.name);
+          const mediaInfo = isMediaFile(entry.name);
+          if (mediaInfo.isMedia) {
+            openMediaPreview(entry.name, url);
+          } else {
+            triggerDownload(url, entry.name);
+          }
         });
       }
       row.appendChild(nameButton);
@@ -4953,6 +4983,55 @@
         return;
       }
       coverPreviewModal.classList.remove('hidden');
+      updateBodyModalState();
+    }
+
+    function isMediaFile(filename) {
+      if (!filename) return { isMedia: false, type: null };
+      const ext = filename.toLowerCase().split('.').pop();
+      const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'm4v'];
+      const audioExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'opus'];
+      if (videoExts.includes(ext)) return { isMedia: true, type: 'video' };
+      if (audioExts.includes(ext)) return { isMedia: true, type: 'audio' };
+      return { isMedia: false, type: null };
+    }
+
+    function closeMediaPreview() {
+      if (!mediaPreviewModal) return;
+      mediaPreviewModal.classList.add('hidden');
+      if (mediaPreviewBody) {
+        mediaPreviewBody.textContent = '';
+      }
+      updateBodyModalState();
+    }
+
+    function openMediaPreview(filename, url) {
+      if (!mediaPreviewModal || !url) return;
+      const mediaInfo = isMediaFile(filename);
+      if (!mediaInfo.isMedia) return;
+
+      if (mediaPreviewBody) {
+        mediaPreviewBody.textContent = '';
+      }
+
+      if (mediaPreviewTitle) {
+        mediaPreviewTitle.textContent = filename;
+      }
+
+      const mediaElement = document.createElement(mediaInfo.type);
+      mediaElement.controls = true;
+      mediaElement.style.maxWidth = '100%';
+      mediaElement.style.maxHeight = '70vh';
+
+      const source = document.createElement('source');
+      source.src = url;
+      mediaElement.appendChild(source);
+
+      if (mediaPreviewBody) {
+        mediaPreviewBody.appendChild(mediaElement);
+      }
+
+      mediaPreviewModal.classList.remove('hidden');
       updateBodyModalState();
     }
 
