@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>About Podfree</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #f87171;
+      --success: #34d399;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.1), transparent 58%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      padding: 1.5rem clamp(1rem, 2vw, 2.5rem) 2.5rem;
+    }
+
+    header {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .site-logo {
+      height: 48px;
+    }
+
+    .top-nav {
+      display: inline-flex;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 0.35rem;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover { background: rgba(148, 163, 184, 0.2); color: var(--text); }
+    .nav-link.active { background: var(--accent); color: #0b1120; font-weight: 600; }
+
+    .nav-link.workspace-required {
+      display: none;
+    }
+
+    .nav-link.workspace-required.visible {
+      display: block;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.9rem, 1.2rem + 2vw, 2.8rem); letter-spacing: 0.015em; }
+    p.description { color: var(--muted); max-width: 70ch; margin: 0.75rem 0 0; line-height: 1.7; }
+
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.3rem;
+      letter-spacing: 0.01em;
+    }
+
+    .panel p {
+      margin: 0;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 1rem;
+      padding: 0.5rem 0;
+      transition: color 0.2s ease;
+    }
+
+    .github-link:hover {
+      color: var(--accent-strong);
+    }
+
+    .github-link svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    label .required {
+      color: var(--danger);
+    }
+
+    input[type="email"],
+    textarea {
+      padding: 0.6rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    input[type="email"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    button {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 0.65rem 1.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      align-self: flex-start;
+      font-weight: 500;
+    }
+
+    button:hover:not(:disabled) {
+      background: rgba(56, 189, 248, 0.32);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .message {
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .message.success {
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--success);
+      display: block;
+    }
+
+    .message.error {
+      background: rgba(248, 113, 113, 0.15);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: var(--danger);
+      display: block;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .feature-item {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .feature-item h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    .feature-item p {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <img src="logo.svg" alt="Podfree" class="site-logo" />
+      <nav class="top-nav">
+        <a class="nav-link" href="projects.html">Projects</a>
+        <a class="nav-link workspace-required" href="editor.html">Editor</a>
+        <a class="nav-link workspace-required" href="light_editor.html">Video</a>
+        <a class="nav-link workspace-required" href="notes_editor.html">Notes</a>
+        <a class="nav-link active" href="about.html">About</a>
+        <a class="nav-link" href="#" id="logout-link">Logout</a>
+      </nav>
+    </div>
+    <h1>About Podfree</h1>
+    <p class="description">
+      A powerful podcast and video editing tool designed to streamline your content creation workflow.
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>What is Podfree?</h2>
+      <p>
+        Podfree is an open-source podcast and video editor that allows you to edit content by manipulating
+        transcripts. Delete words, restore sections, and see your changes reflected in real-time.
+        Export your edited videos and audio with precision and ease.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-item">
+          <h3>Transcript-Based</h3>
+          <p>Edit by selecting words in the transcript</p>
+        </div>
+        <div class="feature-item">
+          <h3>Multi-Format</h3>
+          <p>Export video and audio in multiple formats</p>
+        </div>
+        <div class="feature-item">
+          <h3>Project Management</h3>
+          <p>Organize your episodes in isolated projects</p>
+        </div>
+        <div class="feature-item">
+          <h3>Notes Editor</h3>
+          <p>Write and preview markdown notes</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Open Source</h2>
+      <p>
+        Podfree is open source and available on GitHub. Contributions, bug reports, and feature
+        requests are always welcome!
+      </p>
+      <a href="https://github.com/rithvikvibhu/podfree-editor" target="_blank" rel="noopener noreferrer" class="github-link">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        View on GitHub
+      </a>
+    </section>
+
+    <section class="panel">
+      <h2>Contact Us</h2>
+      <p>Have feedback, questions, or suggestions? We'd love to hear from you!</p>
+
+      <div id="form-message" class="message"></div>
+
+      <form id="contact-form" class="contact-form">
+        <div class="form-group">
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" name="email" required placeholder="your@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message <span class="required">*</span></label>
+          <textarea id="message" name="message" required placeholder="Tell us what you think..."></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn">Send Message</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    function redirectToLogin() {
+      const current = window.location.pathname + window.location.search;
+      const next = encodeURIComponent(current);
+      window.location.replace(`/login.html?next=${next}`);
+    }
+
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        redirectToLogin();
+        throw new Error('unauthorized');
+      }
+      return response;
+    };
+
+    async function handleLogout(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Logout failed', error);
+      } finally {
+        window.location.replace('/login.html');
+      }
+    }
+
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', handleLogout);
+    }
+
+    // Handle navigation link visibility based on workspace
+    async function checkWorkspace() {
+      try {
+        const response = await originalFetch('/api/workspace');
+        if (response.status === 401) {
+          return;
+        }
+        const data = await response.json();
+        const workspaceLinks = document.querySelectorAll('.nav-link.workspace-required');
+        if (data && data.path) {
+          workspaceLinks.forEach(link => link.classList.add('visible'));
+        } else {
+          workspaceLinks.forEach(link => link.classList.remove('visible'));
+        }
+      } catch (error) {
+        console.error('Failed to check workspace:', error);
+      }
+    }
+
+    // Contact form submission
+    const contactForm = document.getElementById('contact-form');
+    const formMessage = document.getElementById('form-message');
+    const submitBtn = document.getElementById('submit-btn');
+
+    contactForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      if (!email || !message) {
+        showMessage('Please fill in all required fields.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, message }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to send message');
+        }
+
+        showMessage('Thank you! Your message has been sent successfully.', 'success');
+        contactForm.reset();
+      } catch (error) {
+        showMessage('Failed to send message: ' + error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+      }
+    });
+
+    function showMessage(text, type) {
+      formMessage.textContent = text;
+      formMessage.className = 'message ' + type;
+      setTimeout(() => {
+        if (type === 'success') {
+          formMessage.className = 'message';
+        }
+      }, 5000);
+    }
+
+    // Check session and workspace on load
+    async function checkSessionOnLoad() {
+      try {
+        const response = await originalFetch('/api/workspace');
+        if (response.status === 401) {
+          redirectToLogin();
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Session check failed:', error);
+        return false;
+      }
+    }
+
+    (async () => {
+      const sessionValid = await checkSessionOnLoad();
+      if (sessionValid) {
+        checkWorkspace();
+      }
+    })();
+  </script>
+</body>
+</html>

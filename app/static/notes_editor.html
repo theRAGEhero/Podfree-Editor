@@ -89,6 +89,14 @@
       font-weight: 600;
     }
 
+    .nav-link.workspace-required {
+      display: none;
+    }
+
+    .nav-link.workspace-required.visible {
+      display: block;
+    }
+
     .workspace-banner {
       margin-top: 1rem;
       background: rgba(15, 23, 42, 0.6);
@@ -273,9 +281,10 @@
       <img src="logo.svg" alt="Podfree" class="site-logo" />
       <nav class="top-nav">
         <a class="nav-link" href="projects.html">Projects</a>
-        <a class="nav-link" href="editor.html">Editor</a>
-        <a class="nav-link" href="light_editor.html">Video</a>
-        <a class="nav-link active" href="notes_editor.html">Notes</a>
+        <a class="nav-link workspace-required" href="editor.html">Editor</a>
+        <a class="nav-link workspace-required" href="light_editor.html">Video</a>
+        <a class="nav-link workspace-required active" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="about.html">About</a>
         <a class="nav-link" href="#" id="logout-link">Logout</a>
       </nav>
     </div>
@@ -444,13 +453,19 @@
 
     function updateWorkspaceDisplay() {
       if (!workspaceBanner) return;
+
+      // Show/hide workspace-required navigation links
+      const workspaceLinks = document.querySelectorAll('.nav-link.workspace-required');
       if (workspaceInfo && workspaceInfo.valid) {
+        workspaceLinks.forEach(link => link.classList.add('visible'));
         const files = workspaceInfo.files || {};
         const summary = `Notes: ${describe(files.notes)} · SRT: ${describe(files.srt)} · Video: ${describe(files.video)} · Audio: ${describe(files.audio)}`;
         workspaceBanner.innerHTML = `<span>Workspace: <strong>${workspaceInfo.path}</strong><br>${summary}</span><a href="projects.html">Projects →</a>`;
       } else if (workspaceInfo && workspaceInfo.path) {
+        workspaceLinks.forEach(link => link.classList.remove('visible'));
         workspaceBanner.innerHTML = `<span>Workspace: <strong>${workspaceInfo.path}</strong><br>The folder is not accessible. Open a different project.</span><a href="projects.html">Projects →</a>`;
       } else {
+        workspaceLinks.forEach(link => link.classList.remove('visible'));
         workspaceBanner.innerHTML = `<span>No workspace selected. Create or open a project to begin.</span><a href="projects.html">Projects →</a>`;
       }
       updatePageTitle();

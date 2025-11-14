@@ -474,6 +474,11 @@ def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
                 continue
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name
+            # Add creation time for sorting
+            try:
+                summary["created_at"] = project_dir.stat().st_ctime
+            except OSError:
+                summary["created_at"] = 0
             projects.append(summary)
         return {"projects": projects, "root": str(user_projects_dir)}
     else:
@@ -483,6 +488,11 @@ def list_projects(username: Optional[str] = None) -> Dict[str, Any]:
                 continue
             summary = summarize_directory(project_dir)
             summary["name"] = project_dir.name
+            # Add creation time for sorting
+            try:
+                summary["created_at"] = project_dir.stat().st_ctime
+            except OSError:
+                summary["created_at"] = 0
             projects.append(summary)
         return {"projects": projects, "root": str(PROJECTS_DIR)}
 
@@ -742,9 +752,14 @@ def run_ffmpeg_proxy(job_id: str, source: Path, target: Path) -> None:
             if not line:
                 continue
             if line.startswith("out_time_ms=") and duration:
-                out_time_ms = float(line.split("=", 1)[1])
-                progress = (out_time_ms / 1_000_000.0) / duration * 100.0
-                job_manager.update_job(job_id, progress=progress)
+                time_value = line.split("=", 1)[1]
+                if time_value != "N/A":
+                    try:
+                        out_time_ms = float(time_value)
+                        progress = (out_time_ms / 1_000_000.0) / duration * 100.0
+                        job_manager.update_job(job_id, progress=progress)
+                    except ValueError:
+                        pass
                 continue
             if line.startswith("progress="):
                 job_manager.update_job(job_id, message=line.split("=", 1)[1])
@@ -1152,6 +1167,15 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     current_session: Optional[Dict[str, Any]] = None
 
+    def handle_one_request(self) -> None:
+        """Handle a single HTTP request, suppressing connection reset errors."""
+        try:
+            super().handle_one_request()
+        except (ConnectionResetError, BrokenPipeError):
+            # Client disconnected - this is normal (e.g., video scrubbing, page navigation)
+            # Silently ignore instead of logging traceback
+            pass
+
     def translate_path(self, path: str) -> str:
         parsed_path = urlparse(path).path
         if parsed_path.startswith("/workspace/"):
@@ -1218,11 +1242,11 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Set-Cookie", "; ".join(directives))
 
     def _is_public_path(self, path: str) -> bool:
-        if path in {"/login", "/login/", "/login.html", "/register", "/register/", "/register.html"}:
+        if path in {"/login", "/login/", "/login.html", "/register", "/register/", "/register.html", "/about.html"}:
             return True
         if path in {"/favicon.ico", "/favicon.png", "/logo.svg"}:
             return True
-        if path.startswith("/api/login") or path.startswith("/api/register"):
+        if path.startswith("/api/login") or path.startswith("/api/register") or path.startswith("/api/contact"):
             return True
         if path.startswith("/api/") or path.startswith("/workspace/"):
             return False
@@ -2257,6 +2281,41 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error("Failed to load transcript edits: %s", e)
                 self._send_json({"deletedIndices": []})
+            return
+
+        if path == "/api/contact":
+            data = self._read_json_body()
+            email = (data.get("email") or "").strip()
+            message = (data.get("message") or "").strip()
+
+            if not email or "@" not in email:
+                self._send_json({"error": "Valid email address required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            if not message:
+                self._send_json({"error": "Message is required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            # Save to comments.txt in data directory
+            comments_file = DATA_DIR / "comments.txt"
+            try:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                comment_entry = f"\n{'='*80}\n"
+                comment_entry += f"Date: {timestamp}\n"
+                comment_entry += f"Email: {email}\n"
+                comment_entry += f"Message:\n{message}\n"
+                comment_entry += f"{'='*80}\n"
+
+                # Append to comments file
+                with open(comments_file, "a", encoding="utf-8") as f:
+                    f.write(comment_entry)
+
+                logger.info("Contact form submission from %s saved", email)
+                self._send_json({"status": "success", "message": "Thank you for your message!"})
+            except OSError as exc:
+                logger.error("Failed to save contact form: %s", exc)
+                self._send_json({"error": "Failed to save message. Please try again."}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
         self._send_json({"error": "not found"}, status=HTTPStatus.NOT_FOUND)

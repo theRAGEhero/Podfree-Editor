@@ -195,6 +195,65 @@
       flex-wrap: wrap;
     }
 
+    .primary-actions {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .primary-actions .secondary-open-buttons {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      position: absolute;
+      left: 0;
+    }
+
+    .primary-actions .secondary-open-buttons button {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.25);
+      font-size: 0.82rem;
+      padding: 0.4rem 0.8rem;
+    }
+
+    .primary-actions .secondary-open-buttons button:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .primary-actions .main-editor-button {
+      background: rgba(56, 189, 248, 0.3);
+      border-color: rgba(56, 189, 248, 0.5);
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 0.75rem 2rem;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+      margin: 0.25rem 0;
+    }
+
+    .primary-actions .main-editor-button:hover {
+      background: rgba(56, 189, 248, 0.42);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .secondary-actions {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .secondary-actions .left-buttons {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
     .controls-row button.delete {
       border-color: rgba(248, 113, 113, 0.45);
       background: rgba(248, 113, 113, 0.18);
@@ -219,6 +278,22 @@
 
     .selection-row button {
       margin-left: auto;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.5);
     }
 
     .select-checkbox {
@@ -300,9 +375,7 @@
       <img src="logo.svg" alt="Podfree" class="site-logo" />
       <nav class="top-nav">
         <a class="nav-link active" href="projects.html">Projects</a>
-        <a class="nav-link" href="editor.html">Editor</a>
-        <a class="nav-link" href="light_editor.html">Video</a>
-        <a class="nav-link" href="notes_editor.html">Notes</a>
+        <a class="nav-link" href="about.html">About</a>
         <a class="nav-link" href="#" id="logout-link">Logout</a>
       </nav>
     </div>
@@ -322,6 +395,7 @@
 
   <main class="projects-card">
     <h2 style="margin:0;font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">Existing Projects</h2>
+    <input id="search-box" type="text" class="search-box" placeholder="Search projects by name..." />
     <div class="selection-row">
       <span id="selection-status">Select projects to enable bulk actions.</span>
       <button id="delete-selected" type="button" disabled>Delete Selected</button>
@@ -383,7 +457,9 @@
     const deleteSelectedBtn = document.getElementById('delete-selected');
     const selectionStatus = document.getElementById('selection-status');
     const logoutLink = document.getElementById('logout-link');
+    const searchBox = document.getElementById('search-box');
     const selectedProjects = new Set();
+    let allProjects = [];
 
     if (logoutLink) {
       logoutLink.addEventListener('click', handleLogout);
@@ -431,16 +507,42 @@
         if (!response.ok) {
           throw new Error(data.error || response.statusText);
         }
-        renderProjects(data.projects || []);
+        allProjects = data.projects || [];
+        filterProjects();
       } catch (error) {
         createStatus.textContent = 'Failed to load projects: ' + error.message;
-        renderProjects([]);
+        allProjects = [];
+        filterProjects();
       }
+    }
+
+    function filterProjects() {
+      const query = searchBox ? searchBox.value.trim().toLowerCase() : '';
+      const filtered = query
+        ? allProjects.filter((project) => project.name.toLowerCase().includes(query))
+        : allProjects;
+
+      // Sort by creation time (newest first)
+      const sorted = filtered.sort((a, b) => {
+        const timeA = a.created_at || 0;
+        const timeB = b.created_at || 0;
+        return timeB - timeA; // Descending order (newest first)
+      });
+
+      renderProjects(sorted);
     }
 
     function renderProjects(projects) {
       projectsGrid.textContent = '';
-      projectsEmpty.style.display = projects.length ? 'none' : 'block';
+      const isSearching = searchBox && searchBox.value.trim() !== '';
+      if (projects.length === 0) {
+        projectsEmpty.style.display = 'block';
+        projectsEmpty.textContent = isSearching
+          ? 'No projects match your search.'
+          : 'No projects yet. Create one above and upload your files.';
+      } else {
+        projectsEmpty.style.display = 'none';
+      }
 
       const present = new Set(projects.map((project) => project.name));
       for (const name of Array.from(selectedProjects)) {
@@ -494,8 +596,45 @@
         }
         card.appendChild(files);
 
-        const uploadRow = document.createElement('div');
-        uploadRow.className = 'upload-row';
+        // Primary actions - Open project in different views
+        const primaryActions = document.createElement('div');
+        primaryActions.className = 'primary-actions';
+
+        // Secondary open buttons (Video and Notes) on the left
+        const secondaryOpenButtons = document.createElement('div');
+        secondaryOpenButtons.className = 'secondary-open-buttons';
+
+        const openLightBtn = document.createElement('button');
+        openLightBtn.type = 'button';
+        openLightBtn.textContent = 'Video';
+        openLightBtn.addEventListener('click', () => openProject(project.path, 'light_editor.html'));
+
+        const openNotesBtn = document.createElement('button');
+        openNotesBtn.type = 'button';
+        openNotesBtn.textContent = 'Notes';
+        openNotesBtn.addEventListener('click', () => openProject(project.path, 'notes_editor.html'));
+
+        secondaryOpenButtons.appendChild(openLightBtn);
+        secondaryOpenButtons.appendChild(openNotesBtn);
+
+        // Main Editor button on the right
+        const openPlayerBtn = document.createElement('button');
+        openPlayerBtn.type = 'button';
+        openPlayerBtn.className = 'main-editor-button';
+        openPlayerBtn.textContent = 'EDIT';
+        openPlayerBtn.addEventListener('click', () => openProject(project.path, 'editor.html'));
+
+        primaryActions.appendChild(secondaryOpenButtons);
+        primaryActions.appendChild(openPlayerBtn);
+        card.appendChild(primaryActions);
+
+        // Secondary actions - File management and utilities
+        const secondaryActions = document.createElement('div');
+        secondaryActions.className = 'secondary-actions';
+
+        const leftButtons = document.createElement('div');
+        leftButtons.className = 'left-buttons';
+
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.multiple = true;
@@ -507,41 +646,25 @@
           event.target.value = '';
         });
 
-        const label = document.createElement('label');
-        label.className = 'file-input-label';
-        label.textContent = 'Upload Files';
-        label.setAttribute('for', fileInput.id);
-
-        uploadRow.appendChild(fileInput);
-        uploadRow.appendChild(label);
-        card.appendChild(uploadRow);
-
-        const controls = document.createElement('div');
-        controls.className = 'controls-row';
-        const openPlayerBtn = document.createElement('button');
-        openPlayerBtn.type = 'button';
-        openPlayerBtn.textContent = 'Open in Editor';
-        openPlayerBtn.addEventListener('click', () => openProject(project.path, 'editor.html'));
-
-        const openNotesBtn = document.createElement('button');
-        openNotesBtn.type = 'button';
-        openNotesBtn.textContent = 'Open in Notes';
-        openNotesBtn.addEventListener('click', () => openProject(project.path, 'notes_editor.html'));
-
-        const openLightBtn = document.createElement('button');
-        openLightBtn.type = 'button';
-        openLightBtn.textContent = 'Video';
-        openLightBtn.addEventListener('click', () => openProject(project.path, 'light_editor.html'));
-
-        const downloadBtn = document.createElement('button');
-        downloadBtn.type = 'button';
-        downloadBtn.textContent = 'Download ZIP';
-        downloadBtn.addEventListener('click', () => downloadProject(project.name));
+        const uploadLabel = document.createElement('label');
+        uploadLabel.className = 'file-input-label';
+        uploadLabel.textContent = 'Upload';
+        uploadLabel.setAttribute('for', fileInput.id);
 
         const rescanBtn = document.createElement('button');
         rescanBtn.type = 'button';
         rescanBtn.textContent = 'Rescan';
         rescanBtn.addEventListener('click', () => listProjects());
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.addEventListener('click', () => downloadProject(project.name));
+
+        leftButtons.appendChild(fileInput);
+        leftButtons.appendChild(uploadLabel);
+        leftButtons.appendChild(rescanBtn);
+        leftButtons.appendChild(downloadBtn);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
@@ -549,13 +672,9 @@
         deleteBtn.classList.add('delete');
         deleteBtn.addEventListener('click', () => deleteProject(project.name));
 
-        controls.appendChild(openPlayerBtn);
-        controls.appendChild(openNotesBtn);
-        controls.appendChild(openLightBtn);
-        controls.appendChild(downloadBtn);
-        controls.appendChild(rescanBtn);
-        controls.appendChild(deleteBtn);
-        card.appendChild(controls);
+        secondaryActions.appendChild(leftButtons);
+        secondaryActions.appendChild(deleteBtn);
+        card.appendChild(secondaryActions);
 
         projectsGrid.appendChild(card);
       });
@@ -833,6 +952,9 @@
     refreshBtn.addEventListener('click', () => listProjects());
     if (deleteSelectedBtn) {
       deleteSelectedBtn.addEventListener('click', deleteSelectedProjects);
+    }
+    if (searchBox) {
+      searchBox.addEventListener('input', filterProjects);
     }
     updateSelectionUI();
     
