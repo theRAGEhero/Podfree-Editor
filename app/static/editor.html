@@ -1711,6 +1711,7 @@
       <div class="participant-row">
         <div class="participant-field">
           <select id="interviewer-speaker-select" class="speaker-select" disabled>
+            <option value="null">No Speaker ID</option>
             <option value="0">Speaker 0</option>
             <option value="1">Speaker 1</option>
             <option value="2">Speaker 2</option>
@@ -1720,6 +1721,7 @@
         </div>
         <div class="participant-field">
           <select id="guest-speaker-select" class="speaker-select" disabled>
+            <option value="null">No Speaker ID</option>
             <option value="0">Speaker 0</option>
             <option value="1">Speaker 1</option>
             <option value="2">Speaker 2</option>
@@ -2002,8 +2004,8 @@
     let lastNotesContent = null;
     let guestName = '';
     let interviewerName = '';
-    let interviewerSpeakerId = 0;
-    let guestSpeakerId = 1;
+    let interviewerSpeakerId = 'null';  // Default to "No Speaker ID" for transcripts without diarization
+    let guestSpeakerId = 'null';
     const fileManagerState = {
       currentDir: '.',
       entries: [],
