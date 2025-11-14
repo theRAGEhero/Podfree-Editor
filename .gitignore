@@ -39,3 +39,6 @@ projects/
 *.mkv
 *.webm
 *.avi
+
+# Development notes
+comments.txt
