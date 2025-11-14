@@ -389,9 +389,16 @@
     }
 
     .player-panel {
-      flex: 1 1 580px;
+      flex: 1 1 auto;
       min-width: 320px;
+      max-width: 33.33%;
       position: relative;
+    }
+
+    @media (max-width: 960px) {
+      .player-panel {
+        max-width: 100%;
+      }
     }
 
     .toolbox {
@@ -401,11 +408,18 @@
     }
 
     .transcript-container {
-      flex: 1 1 520px;
+      flex: 2 1 auto;
       min-width: 380px;
+      max-width: 66.66%;
       display: flex;
       gap: 0.5rem;
       max-height: 76vh;
+    }
+
+    @media (max-width: 960px) {
+      .transcript-container {
+        max-width: 100%;
+      }
     }
 
     .transcript-panel {
