@@ -21,6 +21,16 @@
       box-sizing: border-box;
     }
 
+    ::selection {
+      background: #3b82f6;
+      color: white;
+    }
+
+    ::-moz-selection {
+      background: #3b82f6;
+      color: white;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -533,21 +543,23 @@
     }
 
     .transcript-entry .word:hover {
-      background: rgba(148, 163, 184, 0.3);
+      background: rgba(148, 163, 184, 0.5);
     }
 
     .transcript-entry .word.active {
-      background: #2563eb;
+      background: #3b82f6;
       color: white;
       padding: 3px 5px;
       font-weight: 500;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
     }
 
     .transcript-entry .word.selected {
-      background: #7c3aed;
+      background: #a855f7;
       color: white;
       padding: 3px 5px;
       font-weight: 500;
+      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.4);
     }
 
     .transcript-entry .word.deleted {
