@@ -3482,8 +3482,13 @@
 
       const originalTime = formatDuration(totalDuration);
       const editedTime = formatDuration(editedDuration);
+      const savedTime = formatDuration(deletedDuration);
 
-      wordStatsEl.textContent = `${originalTime} → ${editedTime}`;
+      if (deletedDuration > 0) {
+        wordStatsEl.textContent = `Final: ${editedTime} • Saved: ${savedTime}`;
+      } else {
+        wordStatsEl.textContent = `Final: ${editedTime}`;
+      }
     }
 
     function toggleSelectionMode() {
