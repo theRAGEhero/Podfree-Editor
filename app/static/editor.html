@@ -370,6 +370,41 @@
       gap: 1.2rem;
     }
 
+    .transcript-toolbox {
+      flex: 0 0 auto;
+      width: 140px;
+      max-height: 76vh;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+    }
+
+    .toolbox-btn {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(148, 163, 184, 0.14);
+      border-radius: 14px;
+      padding: 0.7rem 1rem;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: Inter, sans-serif;
+      transition: all 0.2s ease;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .toolbox-btn:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .toolbox-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .transcript-scroll {
       display: flex;
       flex-direction: column;
@@ -610,28 +645,6 @@
     }
 
     .edit-controls .btn-save:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .export-controls .btn-export {
-      border: 1px solid rgba(148, 163, 184, 0.24);
-      background: rgba(148, 163, 184, 0.14);
-      border-radius: 14px;
-      padding: 0.55rem 0.8rem;
-      color: var(--text);
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: background 0.2s ease, border 0.2s ease;
-      font-weight: 500;
-    }
-
-    .export-controls .btn-export:hover {
-      background: rgba(56, 189, 248, 0.18);
-      border-color: rgba(56, 189, 248, 0.4);
-    }
-
-    .export-controls .btn-export:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -1703,17 +1716,17 @@
         <button type="button" id="delete-selected-btn" class="btn-icon" title="Delete selected words" disabled style="color: red;">✕</button>
         <button type="button" id="restore-selected-btn" class="btn-restore" title="Restore selected deleted words" disabled>↻</button>
         <button type="button" id="skip-deleted-btn" class="btn-skip" title="Skip to next non-deleted word">⏭ Skip Deleted</button>
-        <button type="button" id="save-edits-btn" class="btn-save" title="Save edits">💾 Save Edits</button>
         <span id="word-stats" class="stats"></span>
       </div>
       <div id="transcript" class="transcript-scroll">
         <p>Open a project with a transcript to preview it here.</p>
       </div>
     </section>
-    <section class="panel export-controls" style="padding: 1rem; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
-      <button type="button" id="export-video-btn" class="btn-export" title="Render edited video">Render Video</button>
-      <button type="button" id="export-audio-btn" class="btn-export" title="Render edited audio">Render Audio</button>
-    </section>
+    <aside class="panel transcript-toolbox">
+      <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾 Save Edits</button>
+      <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">Render Video</button>
+      <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">Render Audio</button>
+    </aside>
     <aside class="panel toolbox">
       <div class="toolbox-header">
         <h2 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);">
