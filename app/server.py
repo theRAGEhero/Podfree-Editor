@@ -404,7 +404,9 @@ def summarize_directory(ws: Path) -> Dict[str, Any]:
     try:
         rel_project = ws.relative_to(PROJECTS_DIR)
         if rel_project.parts:
-            project_name = rel_project.parts[0]
+            # Use full relative path to ensure each project is unique
+            # e.g., "alice/interview-1" instead of just "alice"
+            project_name = str(rel_project)
     except ValueError:
         project_name = None
 

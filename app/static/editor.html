@@ -5219,6 +5219,9 @@
       await loadWorkspace();
       await loadScripts();
       await loadExistingJobs();
+
+      // Poll for new jobs every 3 seconds to catch jobs created after upload
+      setInterval(() => loadExistingJobs(), 3000);
     })();
 
     // Warn user about unsaved changes before leaving the page
