@@ -2061,6 +2061,7 @@
     let workspaceFiles = { notes: null, srt: null, video: null, proxy: null, audio: null, transcript_json: null, chapters: null };
     let workspaceSources = { original: null, proxy: null };
     let currentSourceRole = 'proxy';
+    let currentSpeed = 1.0;
     const scriptButtons = new Map();
     const scriptStateCache = { key: null, data: {} };
     let transcriptSource = { kind: null, name: null, url: null };
@@ -4403,8 +4404,17 @@
           if (durationEl) durationEl.textContent = formatTime(media.duration);
           const safeTime = Math.min(previousTime, Math.max(0, media.duration - 0.2));
           media.currentTime = safeTime;
+
+          // Apply current playback speed
+          if (currentSpeed && currentSpeed !== 1.0) {
+            media.playbackRate = currentSpeed;
+          }
+
           if (!wasPaused) {
-            media.play().catch(() => {});
+            media.play().catch((error) => {
+              console.error('Autoplay failed:', error);
+              addLogMessage('Autoplay blocked by browser. Click play to start.', 'info');
+            });
           }
           updateCurrentTime();
         },
@@ -5402,15 +5412,44 @@
       stopPlaybackTracking();
     });
 
+    // Video error handling
+    media.addEventListener('error', (e) => {
+      console.error('Video playback error:', media.error);
+      if (media.error) {
+        console.error('Error code:', media.error.code);
+        console.error('Error message:', media.error.message);
+      }
+      addLogMessage(`Video playback error: ${media.error?.message || 'Unknown error'}`, 'error');
+    });
+
+    // Video loading feedback
+    media.addEventListener('waiting', () => {
+      console.log('Video buffering...');
+    });
+
+    media.addEventListener('canplay', () => {
+      console.log('Video ready to play');
+    });
+
+    media.addEventListener('loadstart', () => {
+      console.log('Video loading started');
+    });
+
+    media.addEventListener('loadeddata', () => {
+      console.log('Video data loaded');
+    });
+
     // Speed selector
     if (speedSelector) {
       speedSelector.addEventListener('click', (e) => {
         const button = e.target.closest('button[data-speed]');
         if (!button) return;
 
-        const speed = parseFloat(button.dataset.speed);
-        if (media) {
-          media.playbackRate = speed;
+        currentSpeed = parseFloat(button.dataset.speed);
+
+        // Set playback rate immediately if video is ready
+        if (media && media.readyState >= 2) {
+          media.playbackRate = currentSpeed;
         }
 
         // Update active state
