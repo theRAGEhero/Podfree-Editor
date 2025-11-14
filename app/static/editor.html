@@ -243,9 +243,36 @@
       gap: 0.5rem;
     }
 
-    .participant-row input {
+    .participant-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
       flex: 1 1 200px;
       min-width: 180px;
+    }
+
+    .speaker-select {
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .speaker-select:hover:not(:disabled) {
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .speaker-select:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .participant-row input {
+      width: 100%;
       padding: 0.5rem 0.7rem;
       border-radius: 10px;
       border: 1px solid rgba(148, 163, 184, 0.3);
@@ -1682,8 +1709,24 @@
     <form id="participant-form" class="participant-form">
       <label for="interviewer-input">Participants</label>
       <div class="participant-row">
-        <input id="interviewer-input" type="text" placeholder="Interviewer name" disabled />
-        <input id="guest-input" type="text" placeholder="Guest name" disabled />
+        <div class="participant-field">
+          <select id="interviewer-speaker-select" class="speaker-select" disabled>
+            <option value="0">Speaker 0</option>
+            <option value="1">Speaker 1</option>
+            <option value="2">Speaker 2</option>
+            <option value="3">Speaker 3</option>
+          </select>
+          <input id="interviewer-input" type="text" placeholder="Interviewer name" disabled />
+        </div>
+        <div class="participant-field">
+          <select id="guest-speaker-select" class="speaker-select" disabled>
+            <option value="0">Speaker 0</option>
+            <option value="1">Speaker 1</option>
+            <option value="2">Speaker 2</option>
+            <option value="3">Speaker 3</option>
+          </select>
+          <input id="guest-input" type="text" placeholder="Guest name" disabled />
+        </div>
         <button id="participant-save" type="submit" disabled>Save</button>
         <span id="participant-status" class="participant-status">Open a project from Projects →</span>
       </div>
@@ -1875,6 +1918,8 @@
     const participantForm = document.getElementById('participant-form');
     const interviewerInput = document.getElementById('interviewer-input');
     const guestInput = document.getElementById('guest-input');
+    const interviewerSpeakerSelect = document.getElementById('interviewer-speaker-select');
+    const guestSpeakerSelect = document.getElementById('guest-speaker-select');
     const participantSave = document.getElementById('participant-save');
     const participantStatus = document.getElementById('participant-status');
     const transcriptEl = document.getElementById('transcript');
@@ -1940,6 +1985,8 @@
     let lastNotesContent = null;
     let guestName = '';
     let interviewerName = '';
+    let interviewerSpeakerId = 0;
+    let guestSpeakerId = 1;
     const fileManagerState = {
       currentDir: '.',
       entries: [],
@@ -2243,6 +2290,39 @@
       }
     });
 
+    // Speaker dropdown auto-swap logic
+    if (interviewerSpeakerSelect && guestSpeakerSelect) {
+      interviewerSpeakerSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === guestSpeakerSelect.value) {
+          // Swap: if interviewer selects what guest has, swap them
+          guestSpeakerSelect.value = String(interviewerSpeakerId);
+        }
+        interviewerSpeakerId = parseInt(selectedValue, 10);
+        guestSpeakerId = parseInt(guestSpeakerSelect.value, 10);
+        // Rebuild speaker mapping with new assignments
+        if (allSegments && allSegments.length > 0) {
+          buildSpeakerMapping(allSegments);
+          renderTranscript();
+        }
+      });
+
+      guestSpeakerSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === interviewerSpeakerSelect.value) {
+          // Swap: if guest selects what interviewer has, swap them
+          interviewerSpeakerSelect.value = String(guestSpeakerId);
+        }
+        guestSpeakerId = parseInt(selectedValue, 10);
+        interviewerSpeakerId = parseInt(interviewerSpeakerSelect.value, 10);
+        // Rebuild speaker mapping with new assignments
+        if (allSegments && allSegments.length > 0) {
+          buildSpeakerMapping(allSegments);
+          renderTranscript();
+        }
+      });
+    }
+
     if (participantForm) {
       participantForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -2272,7 +2352,20 @@
           lastNotesContent = updated;
           interviewerName = nextInterviewer;
           guestName = nextGuest;
+          // Save speaker IDs to localStorage
+          if (currentProjectName) {
+            const speakerMapping = {
+              interviewerSpeakerId: interviewerSpeakerId,
+              guestSpeakerId: guestSpeakerId
+            };
+            localStorage.setItem(`speaker-mapping-${currentProjectName}`, JSON.stringify(speakerMapping));
+          }
           updateParticipantDisplay();
+          // Rebuild speaker mapping with updated names
+          if (allSegments && allSegments.length > 0) {
+            buildSpeakerMapping(allSegments);
+            renderTranscript();
+          }
           setParticipantFormState({ disabled: false, interviewer: nextInterviewer, guest: nextGuest, status: `Saved at ${new Date().toLocaleTimeString()}` });
         } catch (error) {
           console.error(error);
@@ -2919,16 +3012,23 @@
       const interviewerLabel = interviewerName || 'Interviewer';
       const guestLabel = guestName || 'Guest';
 
+      // Use manual speaker ID assignments
       encountered.forEach((entry, index) => {
-        if (!assigned.has('interviewer')) {
+        const numeric = Number.isFinite(entry.numeric) ? entry.numeric : null;
+
+        // Check if this entry matches the manually assigned interviewer speaker ID
+        if (numeric === interviewerSpeakerId || entry.raw === interviewerSpeakerId || entry.raw === String(interviewerSpeakerId)) {
           assign(entry, 'interviewer', interviewerLabel);
           return;
         }
-        if (!assigned.has('guest') && index > 0) {
+
+        // Check if this entry matches the manually assigned guest speaker ID
+        if (numeric === guestSpeakerId || entry.raw === guestSpeakerId || entry.raw === String(guestSpeakerId)) {
           assign(entry, 'guest', guestLabel);
           return;
         }
-        const numeric = Number.isFinite(entry.numeric) ? entry.numeric : null;
+
+        // Otherwise assign as other
         const rawLabel = typeof entry.raw === 'string' ? entry.raw.trim() : '';
         const label = rawLabel || `Speaker ${Number.isFinite(numeric) ? numeric : index + 1}`;
         assign(entry, 'other', label);
@@ -3903,6 +4003,21 @@
     const currentTitle = extractTitleSection(lastNotesContent) || '';
     guestName = extractSectionFirstLine(lastNotesContent, ['guest']) || '';
     interviewerName = extractSectionFirstLine(lastNotesContent, ['interviewer', 'interviwer']) || '';
+    // Load speaker IDs from localStorage
+    if (currentProjectName) {
+      const savedMapping = localStorage.getItem(`speaker-mapping-${currentProjectName}`);
+      if (savedMapping) {
+        try {
+          const mapping = JSON.parse(savedMapping);
+          interviewerSpeakerId = mapping.interviewerSpeakerId ?? 0;
+          guestSpeakerId = mapping.guestSpeakerId ?? 1;
+          if (interviewerSpeakerSelect) interviewerSpeakerSelect.value = String(interviewerSpeakerId);
+          if (guestSpeakerSelect) guestSpeakerSelect.value = String(guestSpeakerId);
+        } catch (e) {
+          console.error('Failed to parse speaker mapping:', e);
+        }
+      }
+    }
     updateParticipantDisplay();
     setTitleFormState({ disabled: false, value: currentTitle, status: 'Idle' });
     setParticipantFormState({ disabled: false, interviewer: interviewerName || '', guest: guestName || '', status: 'Idle' });
