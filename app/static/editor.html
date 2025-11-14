@@ -391,46 +391,49 @@
     }
 
     .transcript-container {
-      flex: 1 1 600px;
-      min-width: 480px;
+      flex: 1 1 520px;
+      min-width: 380px;
       display: flex;
-      gap: 0.75rem;
+      gap: 0.5rem;
       max-height: 76vh;
     }
 
     .transcript-panel {
       flex: 1 1 auto;
-      min-width: 340px;
+      min-width: 320px;
       max-height: 76vh;
       gap: 1.2rem;
     }
 
     .transcript-toolbox {
       flex: 0 0 auto;
-      width: 120px;
+      width: 56px;
       max-height: 76vh;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      padding: 1rem 0.75rem;
+      gap: 0.6rem;
+      padding: 0.75rem 0.4rem;
       background: var(--panel);
       border: 1px solid var(--panel-border);
-      border-radius: 24px;
+      border-radius: 18px;
     }
 
     .toolbox-btn {
       border: 1px solid rgba(148, 163, 184, 0.24);
       background: rgba(148, 163, 184, 0.14);
-      border-radius: 14px;
-      padding: 0.7rem 1rem;
+      border-radius: 12px;
+      padding: 0.6rem 0.3rem;
       color: var(--text);
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 1.5rem;
       font-family: Inter, sans-serif;
       transition: all 0.2s ease;
-      white-space: normal;
+      white-space: nowrap;
       text-align: center;
-      line-height: 1.4;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .toolbox-btn:hover {
@@ -1780,9 +1783,9 @@
         </div>
       </section>
       <aside class="transcript-toolbox">
-        <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾 Save Edits</button>
-        <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">🎬 Render Video</button>
-        <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">🎙️ Render Audio</button>
+        <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾</button>
+        <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">🎬</button>
+        <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">🎙️</button>
       </aside>
     </div>
     <aside class="panel toolbox">
