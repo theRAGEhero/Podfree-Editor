@@ -3636,7 +3636,6 @@
 
       try {
         exportVideoBtn.disabled = true;
-        exportVideoBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-video', {
           method: 'POST',
@@ -3651,8 +3650,6 @@
         if (!response.ok) {
           throw new Error(data.error || 'Render failed');
         }
-
-        exportVideoBtn.textContent = 'Render Video';
 
         const card = addJobCard(data.job_id, `Render Video`);
         const job = await waitForJob(data.job_id, (update) => {
@@ -3683,7 +3680,6 @@
         addLogMessage(`Render failed: ${error.message}`, 'error');
       } finally {
         exportVideoBtn.disabled = false;
-        exportVideoBtn.textContent = 'Render Video';
       }
     }
 
@@ -3705,7 +3701,6 @@
 
       try {
         exportAudioBtn.disabled = true;
-        exportAudioBtn.textContent = 'Starting Render...';
 
         const response = await fetch('/api/export-audio', {
           method: 'POST',
@@ -3720,8 +3715,6 @@
         if (!response.ok) {
           throw new Error(data.error || 'Render failed');
         }
-
-        exportAudioBtn.textContent = 'Render Audio';
 
         const card = addJobCard(data.job_id, `Render Audio`);
         const job = await waitForJob(data.job_id, (update) => {
@@ -3752,7 +3745,6 @@
         addLogMessage(`Audio render failed: ${error.message}`, 'error');
       } finally {
         exportAudioBtn.disabled = false;
-        exportAudioBtn.textContent = 'Render Audio';
       }
     }
 
