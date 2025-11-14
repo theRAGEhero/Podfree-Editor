@@ -2095,6 +2095,7 @@
     let audioExportCompleted = false;
     let playbackTrackingInterval = null;
     let isCurrentlySeeking = false;
+    let lastSeekTime = 0;
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3977,6 +3978,12 @@
 
     function skipToNextNonDeleted() {
       const currentTime = media.currentTime;
+      const now = Date.now();
+
+      // Prevent rapid consecutive seeks (debounce by 300ms)
+      if (now - lastSeekTime < 300) {
+        return;
+      }
 
       // Find the next non-deleted word
       const nextWordIndex = wordSpans.findIndex((w, idx) =>
@@ -3985,7 +3992,9 @@
 
       if (nextWordIndex >= 0) {
         isCurrentlySeeking = true;
-        media.currentTime = wordSpans[nextWordIndex].start;
+        lastSeekTime = now;
+        // Seek slightly before the word start (same as other seek operations)
+        media.currentTime = Math.max(0, wordSpans[nextWordIndex].start - SEEK_EPSILON);
       } else {
         // No more non-deleted words - pause at end of edited content
         media.pause();
