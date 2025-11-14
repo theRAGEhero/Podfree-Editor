@@ -1882,8 +1882,8 @@
 
   <script>
     function redirectToLogin() {
-      const current = window.location.pathname + window.location.search;
-      const next = encodeURIComponent(current);
+      // Always redirect to Projects page after re-login, not back to Editor
+      const next = encodeURIComponent('/index.html');
       window.location.replace(`/login.html?next=${next}`);
     }
 
