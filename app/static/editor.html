@@ -2097,6 +2097,7 @@
     let isCurrentlySeeking = false;
     let lastSeekTime = 0;
     let isVideoBuffering = false;
+    let hasPerformedInitialSkip = false;
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -5475,12 +5476,14 @@
     media.addEventListener('loadeddata', () => {
       console.log('Video data loaded');
 
-      // If there are deleted words at the beginning, seek to first non-deleted word
-      if (wordSpans.length > 0 && deletedWords.size > 0) {
+      // If there are deleted words at the beginning, seek to first non-deleted word (only once)
+      if (!hasPerformedInitialSkip && wordSpans.length > 0 && deletedWords.size > 0) {
         const firstNonDeletedIndex = wordSpans.findIndex((w, idx) => !deletedWords.has(idx));
         if (firstNonDeletedIndex > 0) {
-          // There are deleted words at the start
-          media.currentTime = Math.max(0, wordSpans[firstNonDeletedIndex].start - SEEK_EPSILON);
+          // There are deleted words at the start - seek directly to the first non-deleted word
+          // Don't use SEEK_EPSILON here to avoid seeking back into the deleted region
+          hasPerformedInitialSkip = true;
+          media.currentTime = wordSpans[firstNonDeletedIndex].start;
           console.log(`Skipped ${firstNonDeletedIndex} deleted words at start, jumping to ${media.currentTime}s`);
         }
       }
