@@ -2096,6 +2096,7 @@
     let playbackTrackingInterval = null;
     let isCurrentlySeeking = false;
     let lastSeekTime = 0;
+    let isVideoBuffering = false;
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3980,8 +3981,13 @@
       const currentTime = media.currentTime;
       const now = Date.now();
 
-      // Prevent rapid consecutive seeks (debounce by 300ms)
-      if (now - lastSeekTime < 300) {
+      // Don't seek if video is currently buffering
+      if (isVideoBuffering) {
+        return;
+      }
+
+      // Prevent rapid consecutive seeks (debounce by 1000ms)
+      if (now - lastSeekTime < 1000) {
         return;
       }
 
@@ -5454,10 +5460,12 @@
     // Video loading feedback
     media.addEventListener('waiting', () => {
       console.log('Video buffering...');
+      isVideoBuffering = true;
     });
 
     media.addEventListener('canplay', () => {
       console.log('Video ready to play');
+      isVideoBuffering = false;
     });
 
     media.addEventListener('loadstart', () => {
@@ -5466,6 +5474,16 @@
 
     media.addEventListener('loadeddata', () => {
       console.log('Video data loaded');
+
+      // If there are deleted words at the beginning, seek to first non-deleted word
+      if (wordSpans.length > 0 && deletedWords.size > 0) {
+        const firstNonDeletedIndex = wordSpans.findIndex((w, idx) => !deletedWords.has(idx));
+        if (firstNonDeletedIndex > 0) {
+          // There are deleted words at the start
+          media.currentTime = Math.max(0, wordSpans[firstNonDeletedIndex].start - SEEK_EPSILON);
+          console.log(`Skipped ${firstNonDeletedIndex} deleted words at start, jumping to ${media.currentTime}s`);
+        }
+      }
     });
 
     // Speed selector
