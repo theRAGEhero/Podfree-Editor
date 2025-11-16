@@ -2099,6 +2099,7 @@
     let isVideoBuffering = false;
     let hasPerformedInitialSkip = false;
     let lastSeekCompleteTime = 0;  // Track when any seek completes (user or automatic)
+    let isUserSeeking = false;  // Track when user is manually seeking
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3928,12 +3929,12 @@
 
       playbackTrackingInterval = setInterval(() => {
         // Don't track if paused, seeking, or buffering
-        if (media.paused || isCurrentlySeeking || isVideoBuffering) return;
+        if (media.paused || isCurrentlySeeking || isVideoBuffering || isUserSeeking) return;
 
-        // Don't track within 2 seconds after ANY seek completes (user or automatic)
-        // This prevents overriding user manual seeks and allows video to stabilize
+        // Don't track within 3 seconds after ANY seek completes (user or automatic)
+        // INCREASED from 2s to 3s to give more time for video to stabilize
         const timeSinceLastSeek = Date.now() - lastSeekCompleteTime;
-        if (timeSinceLastSeek < 2000) return;
+        if (timeSinceLastSeek < 3000) return;
 
         const currentTime = media.currentTime;
 
@@ -5442,15 +5443,24 @@
     }
 
     media.addEventListener('timeupdate', updateCurrentTime);
+
+    // Handle user manual seeking (e.g., clicking timeline)
+    media.addEventListener('seeking', () => {
+      console.log('User seeking detected');
+      isUserSeeking = true;
+      isCurrentlySeeking = true;  // Also set this to be safe
+    });
+
     media.addEventListener('seeked', () => {
       updateCurrentTime();
       // Record when this seek completed (user or automatic)
       lastSeekCompleteTime = Date.now();
-      // Delay clearing seeking flag to give video time to stabilize
+      console.log('Seek completed at ' + media.currentTime + 's, tracking paused for 3 seconds');
+      // Delay clearing seeking flags to give video time to stabilize
       setTimeout(() => {
         isCurrentlySeeking = false;
-      }, 500); // Wait 500ms after seek completes before allowing tracking to resume
-      console.log('Seek completed, tracking paused for 2 seconds');
+        isUserSeeking = false;
+      }, 1000); // Wait 1 second after seek completes before allowing tracking to resume
     });
     media.addEventListener('loadeddata', updateCurrentTime);
 
