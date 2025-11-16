@@ -3926,7 +3926,8 @@
       if (playbackTrackingInterval) return; // Already tracking
 
       playbackTrackingInterval = setInterval(() => {
-        if (media.paused || isCurrentlySeeking) return;
+        // Don't track if paused, seeking, or buffering
+        if (media.paused || isCurrentlySeeking || isVideoBuffering) return;
 
         const currentTime = media.currentTime;
 
@@ -3987,8 +3988,8 @@
         return;
       }
 
-      // Prevent rapid consecutive seeks (debounce by 1000ms)
-      if (now - lastSeekTime < 1000) {
+      // Prevent rapid consecutive seeks (debounce by 2000ms to ensure video stabilizes)
+      if (now - lastSeekTime < 2000) {
         return;
       }
 
@@ -4000,8 +4001,10 @@
       if (nextWordIndex >= 0) {
         isCurrentlySeeking = true;
         lastSeekTime = now;
-        // Seek slightly before the word start (same as other seek operations)
-        media.currentTime = Math.max(0, wordSpans[nextWordIndex].start - SEEK_EPSILON);
+        // Seek directly to the word start (NOT using SEEK_EPSILON to avoid seeking to time 0)
+        // SEEK_EPSILON is only for user-initiated seeks to start playback before the word
+        media.currentTime = wordSpans[nextWordIndex].start;
+        console.log(`Skipping to next non-deleted word at ${wordSpans[nextWordIndex].start}s`);
       } else {
         // No more non-deleted words - pause at end of edited content
         media.pause();
@@ -5435,7 +5438,10 @@
     media.addEventListener('timeupdate', updateCurrentTime);
     media.addEventListener('seeked', () => {
       updateCurrentTime();
-      isCurrentlySeeking = false; // Clear seeking flag when seek completes
+      // Delay clearing seeking flag to give video time to stabilize
+      setTimeout(() => {
+        isCurrentlySeeking = false;
+      }, 500); // Wait 500ms after seek completes before allowing tracking to resume
     });
     media.addEventListener('loadeddata', updateCurrentTime);
 
