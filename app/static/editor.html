@@ -2098,6 +2098,7 @@
     let lastSeekTime = 0;
     let isVideoBuffering = false;
     let hasPerformedInitialSkip = false;
+    let lastSeekCompleteTime = 0;  // Track when any seek completes (user or automatic)
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3929,6 +3930,11 @@
         // Don't track if paused, seeking, or buffering
         if (media.paused || isCurrentlySeeking || isVideoBuffering) return;
 
+        // Don't track within 2 seconds after ANY seek completes (user or automatic)
+        // This prevents overriding user manual seeks and allows video to stabilize
+        const timeSinceLastSeek = Date.now() - lastSeekCompleteTime;
+        if (timeSinceLastSeek < 2000) return;
+
         const currentTime = media.currentTime;
 
         // Find the current word (if any)
@@ -3988,8 +3994,8 @@
         return;
       }
 
-      // Prevent rapid consecutive seeks (debounce by 2000ms to ensure video stabilizes)
-      if (now - lastSeekTime < 2000) {
+      // Prevent rapid consecutive seeks (debounce by 3000ms to ensure video stabilizes)
+      if (now - lastSeekTime < 3000) {
         return;
       }
 
@@ -5438,10 +5444,13 @@
     media.addEventListener('timeupdate', updateCurrentTime);
     media.addEventListener('seeked', () => {
       updateCurrentTime();
+      // Record when this seek completed (user or automatic)
+      lastSeekCompleteTime = Date.now();
       // Delay clearing seeking flag to give video time to stabilize
       setTimeout(() => {
         isCurrentlySeeking = false;
       }, 500); // Wait 500ms after seek completes before allowing tracking to resume
+      console.log('Seek completed, tracking paused for 2 seconds');
     });
     media.addEventListener('loadeddata', updateCurrentTime);
 
