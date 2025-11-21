@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Podfree Editor</title>
+  <title>Podfree Editor (New Architecture)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="favicon.ico" />
   <style>
@@ -2093,13 +2093,19 @@
     let savedDeletedWords = new Set();
     let videoExportCompleted = false;
     let audioExportCompleted = false;
-    let playbackTrackingInterval = null;
-    let isCurrentlySeeking = false;
-    let lastSeekTime = 0;
-    let isVideoBuffering = false;
+
+    // NEW ARCHITECTURE - Simple state machine for video sync
+    const PlaybackState = {
+      IDLE: 'idle',
+      PLAYING: 'playing',
+      USER_SEEKING: 'user_seeking',
+      AUTO_SKIPPING: 'auto_skipping'
+    };
+    let currentState = PlaybackState.IDLE;
+    let deletedRegions = [];  // Will store {start, end} for each deleted region
+    let lastAutoSkipTime = 0;  // Timestamp of last automatic skip
+
     let hasPerformedInitialSkip = false;
-    let lastSeekCompleteTime = 0;  // Track when any seek completes (user or automatic)
-    let isUserSeeking = false;  // Track when user is manually seeking
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3665,6 +3671,8 @@
       if (deleteSelectedBtn) deleteSelectedBtn.disabled = true;
       checkForUnsavedChanges();
       updateWordStats();
+      // NEW ARCHITECTURE - Rebuild deleted regions after editing
+      buildDeletedRegions();
     }
 
     function restoreSelectedWords() {
@@ -3680,6 +3688,8 @@
       if (restoreSelectedBtn) restoreSelectedBtn.disabled = true;
       checkForUnsavedChanges();
       updateWordStats();
+      // NEW ARCHITECTURE - Rebuild deleted regions after editing
+      buildDeletedRegions();
     }
 
     function getEditedWords() {
@@ -3910,6 +3920,9 @@
         console.error('Load edits error:', error);
         // Don't alert on load error - just log it
       }
+
+      // NEW ARCHITECTURE - Build deleted regions after loading edits
+      buildDeletedRegions();
     }
 
     function updateDeletedWordsUI() {
@@ -3923,97 +3936,78 @@
       });
     }
 
-    // Real-time preview: skip deleted words during playback
-    function startPlaybackTracking() {
-      if (playbackTrackingInterval) return; // Already tracking
+    // NEW ARCHITECTURE - Build deleted regions map from deleted words
+    function buildDeletedRegions() {
+      deletedRegions = [];
+      if (wordSpans.length === 0 || deletedWords.size === 0) return;
 
-      playbackTrackingInterval = setInterval(() => {
-        // Don't track if paused, seeking, or buffering
-        if (media.paused || isCurrentlySeeking || isVideoBuffering || isUserSeeking) return;
+      let regionStart = null;
+      let regionEnd = null;
 
-        // Don't track within 3 seconds after ANY seek completes (user or automatic)
-        // INCREASED from 2s to 3s to give more time for video to stabilize
-        const timeSinceLastSeek = Date.now() - lastSeekCompleteTime;
-        if (timeSinceLastSeek < 3000) return;
-
-        const currentTime = media.currentTime;
-
-        // Find the current word (if any)
-        const currentWordIndex = wordSpans.findIndex(w =>
-          currentTime >= w.start && currentTime < w.end
-        );
-
-        // Check if we're on a deleted word
-        if (currentWordIndex >= 0 && deletedWords.has(currentWordIndex)) {
-          skipToNextNonDeleted();
-          return;
-        }
-
-        // Also check if we're approaching a deleted word
-        // Find the next upcoming word
-        const nextWordIndex = wordSpans.findIndex(w => w.start > currentTime);
-
-        // If the next word is deleted and very close (within 0.1s), skip to next non-deleted
-        if (nextWordIndex >= 0 && deletedWords.has(nextWordIndex)) {
-          const nextWord = wordSpans[nextWordIndex];
-          if ((nextWord.start - currentTime) < 0.1) {
-            skipToNextNonDeleted();
-            return;
+      for (let i = 0; i < wordSpans.length; i++) {
+        if (deletedWords.has(i)) {
+          if (regionStart === null) {
+            // Start of new deleted region
+            regionStart = wordSpans[i].start;
+          }
+          regionEnd = wordSpans[i].end;
+        } else {
+          if (regionStart !== null) {
+            // End of deleted region, save it
+            deletedRegions.push({start: regionStart, end: regionEnd});
+            regionStart = null;
+            regionEnd = null;
           }
         }
+      }
 
-        // Check if we've passed all kept words
-        let lastKeptIndex = -1;
-        for (let i = wordSpans.length - 1; i >= 0; i--) {
-          if (!deletedWords.has(i)) {
-            lastKeptIndex = i;
-            break;
-          }
-        }
+      // Handle case where file ends with deleted words
+      if (regionStart !== null) {
+        deletedRegions.push({start: regionStart, end: regionEnd});
+      }
 
-        if (lastKeptIndex >= 0 && currentTime > wordSpans[lastKeptIndex].end) {
-          // We're past all kept content, pause the video
-          media.pause();
-        }
-      }, 50); // Check every 50ms
+      console.log(`Built ${deletedRegions.length} deleted regions:`, deletedRegions);
     }
 
-    function stopPlaybackTracking() {
-      if (playbackTrackingInterval) {
-        clearInterval(playbackTrackingInterval);
-        playbackTrackingInterval = null;
+    // NEW ARCHITECTURE - Check if we're in or near a deleted region
+    function checkForDeletedRegion(currentTime) {
+      // Don't check during user seeking or auto-skipping
+      if (currentState === PlaybackState.USER_SEEKING || currentState === PlaybackState.AUTO_SKIPPING) {
+        return null;
       }
-      isCurrentlySeeking = false; // Reset seeking flag when tracking stops
+
+      // Prevent rapid consecutive auto-skips (minimum 2 seconds between skips)
+      const timeSinceLastSkip = Date.now() - lastAutoSkipTime;
+      if (timeSinceLastSkip < 2000) {
+        return null;
+      }
+
+      // Check if we're in a deleted region
+      for (const region of deletedRegions) {
+        // If we're in the region or within 0.2s of entering it
+        if (currentTime >= region.start - 0.2 && currentTime < region.end) {
+          return region;
+        }
+      }
+
+      return null;
     }
 
-    function skipToNextNonDeleted() {
-      const currentTime = media.currentTime;
-      const now = Date.now();
-
-      // Don't seek if video is currently buffering
-      if (isVideoBuffering) {
-        return;
-      }
-
-      // Prevent rapid consecutive seeks (debounce by 3000ms to ensure video stabilizes)
-      if (now - lastSeekTime < 3000) {
-        return;
-      }
-
-      // Find the next non-deleted word
-      const nextWordIndex = wordSpans.findIndex((w, idx) =>
-        w.start > currentTime && !deletedWords.has(idx)
+    // NEW ARCHITECTURE - Smart skip to end of deleted region
+    function skipDeletedRegion(region) {
+      // Find the first non-deleted word after this region
+      const nextNonDeletedWord = wordSpans.find((w, idx) =>
+        w.start >= region.end && !deletedWords.has(idx)
       );
 
-      if (nextWordIndex >= 0) {
-        isCurrentlySeeking = true;
-        lastSeekTime = now;
-        // Seek directly to the word start (NOT using SEEK_EPSILON to avoid seeking to time 0)
-        // SEEK_EPSILON is only for user-initiated seeks to start playback before the word
-        media.currentTime = wordSpans[nextWordIndex].start;
-        console.log(`Skipping to next non-deleted word at ${wordSpans[nextWordIndex].start}s`);
+      if (nextNonDeletedWord) {
+        console.log(`Auto-skipping deleted region [${region.start}s - ${region.end}s] → ${nextNonDeletedWord.start}s`);
+        currentState = PlaybackState.AUTO_SKIPPING;
+        lastAutoSkipTime = Date.now();
+        media.currentTime = nextNonDeletedWord.start;
       } else {
-        // No more non-deleted words - pause at end of edited content
+        // No more content after deleted region, pause
+        console.log('Reached end of kept content, pausing');
         media.pause();
       }
     }
@@ -5442,35 +5436,53 @@
       });
     }
 
-    media.addEventListener('timeupdate', updateCurrentTime);
+    // NEW ARCHITECTURE - Event-driven playback tracking
+    media.addEventListener('timeupdate', () => {
+      updateCurrentTime();
+
+      // Check for deleted regions during normal playback only
+      if (currentState === PlaybackState.PLAYING) {
+        const currentTime = media.currentTime;
+        const deletedRegion = checkForDeletedRegion(currentTime);
+
+        if (deletedRegion) {
+          skipDeletedRegion(deletedRegion);
+        }
+      }
+    });
 
     // Handle user manual seeking (e.g., clicking timeline)
     media.addEventListener('seeking', () => {
-      console.log('User seeking detected');
-      isUserSeeking = true;
-      isCurrentlySeeking = true;  // Also set this to be safe
+      console.log('User seeking to ' + media.currentTime + 's');
+      currentState = PlaybackState.USER_SEEKING;
     });
 
     media.addEventListener('seeked', () => {
       updateCurrentTime();
-      // Record when this seek completed (user or automatic)
-      lastSeekCompleteTime = Date.now();
-      console.log('Seek completed at ' + media.currentTime + 's, tracking paused for 3 seconds');
-      // Delay clearing seeking flags to give video time to stabilize
+      const wasAutoSkipping = currentState === PlaybackState.AUTO_SKIPPING;
+
+      // After seek completes, return to PLAYING state (or IDLE if paused)
       setTimeout(() => {
-        isCurrentlySeeking = false;
-        isUserSeeking = false;
-      }, 1000); // Wait 1 second after seek completes before allowing tracking to resume
+        currentState = media.paused ? PlaybackState.IDLE : PlaybackState.PLAYING;
+        if (wasAutoSkipping) {
+          console.log('Auto-skip completed, resumed at ' + media.currentTime + 's');
+        } else {
+          console.log('User seek completed at ' + media.currentTime + 's');
+        }
+      }, 500); // Small delay to let video stabilize
     });
+
     media.addEventListener('loadeddata', updateCurrentTime);
 
-    // Start/stop playback tracking for skipping deleted words
+    // Update state on play/pause
     media.addEventListener('play', () => {
-      startPlaybackTracking();
+      currentState = PlaybackState.PLAYING;
+      console.log('Playback started');
     });
 
     media.addEventListener('pause', () => {
-      stopPlaybackTracking();
+      currentState = PlaybackState.IDLE;
+      console.log('Playback paused');
     });
 
     // Video error handling
@@ -5483,15 +5495,13 @@
       addLogMessage(`Video playback error: ${media.error?.message || 'Unknown error'}`, 'error');
     });
 
-    // Video loading feedback
+    // Video loading feedback (for debugging)
     media.addEventListener('waiting', () => {
       console.log('Video buffering...');
-      isVideoBuffering = true;
     });
 
     media.addEventListener('canplay', () => {
       console.log('Video ready to play');
-      isVideoBuffering = false;
     });
 
     media.addEventListener('loadstart', () => {
