@@ -3274,7 +3274,9 @@
       activeWordIndex = -1;
       selectedWords.clear();
       deletedWords.clear();
-      stopPlaybackTracking();
+      // NEW ARCHITECTURE - No need to stop tracking (event-driven, no intervals)
+      currentState = PlaybackState.IDLE;
+      deletedRegions = [];
       userIsScrolling = false;
       if (scrollTimeout) {
         clearTimeout(scrollTimeout);
