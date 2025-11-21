@@ -5640,8 +5640,21 @@
       restoreSelectedBtn.addEventListener('click', restoreSelectedWords);
     }
 
+    // NEW ARCHITECTURE - Manual skip button
     if (skipDeletedBtn) {
-      skipDeletedBtn.addEventListener('click', skipToNextNonDeleted);
+      skipDeletedBtn.addEventListener('click', () => {
+        const currentTime = media.currentTime;
+
+        // Find the next deleted region after current time
+        const nextDeletedRegion = deletedRegions.find(region => region.start > currentTime);
+
+        if (nextDeletedRegion) {
+          // Skip this deleted region
+          skipDeletedRegion(nextDeletedRegion);
+        } else {
+          console.log('No more deleted regions ahead');
+        }
+      });
     }
 
     if (saveEditsBtn) {
