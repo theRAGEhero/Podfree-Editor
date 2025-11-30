@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import httpx
+
 try:  # New Deepgram SDK v3+
     from deepgram import DeepgramClient
 
@@ -40,7 +42,7 @@ def load_env_file(*candidates: Path) -> None:
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent  # Go up two levels: ai-tools -> scripts -> project root
 load_env_file(PROJECT_ROOT / ".env", SCRIPT_DIR / ".env")
 
 
@@ -356,26 +358,33 @@ def transcribe_single_file(input_file, api_key):
         print(f"File size: {file_size:.1f} MB")
 
         if HAS_SDK_V3:
-            deepgram = DeepgramClient(api_key)
+            # Must explicitly pass api_key because SDK's default parameter is evaluated at import time
+            # Create custom httpx client with very generous timeouts for large file uploads
+            # connect: 30s to establish connection
+            # read: 30 minutes to receive response (allows Deepgram processing time)
+            # write: 30 minutes to send large audio file (allows slow uploads)
+            # pool: 30s to get connection from pool
+            timeout_config = httpx.Timeout(connect=30.0, read=1800.0, write=1800.0, pool=30.0)
+            http_client = httpx.Client(timeout=timeout_config)
+            deepgram = DeepgramClient(api_key=api_key, httpx_client=http_client)
             print("Reading audio file...")
             with open(input_file, "rb") as file:
                 buffer_data = file.read()
 
-            print("Sending to Deepgram (SDK v3) for transcription...")
+            print("Sending to Deepgram (SDK v5) for transcription...")
             response = deepgram.listen.v1.media.transcribe_file(
-                buffer_data,
-                {
-                    "model": "nova-2",
-                    "language": "en",
-                    "diarize": True,
-                    "punctuate": True,
-                    "paragraphs": True,
-                    "utterances": True,
-                    "smart_format": True,
-                },
+                request=buffer_data,
+                model="nova-2",
+                language="en",
+                diarize=True,
+                punctuate=True,
+                paragraphs=True,
+                utterances=True,
+                smart_format=True,
             )
             if hasattr(response, "model_dump"):
-                response_dict = response.model_dump()
+                # Use mode='json' to serialize datetime objects to ISO format strings
+                response_dict = response.model_dump(mode='json')
             elif isinstance(response, dict):
                 response_dict = response
             elif hasattr(response, "to_dict"):
