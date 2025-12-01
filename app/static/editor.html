@@ -389,23 +389,44 @@
     }
 
     .player-panel {
-      flex: 1 1 580px;
-      min-width: 320px;
+      flex: 1 1 auto;
+      min-width: 280px;
+      max-width: 30%;
       position: relative;
+      order: 1;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        flex-wrap: wrap;
+      }
+
+      .player-panel {
+        max-width: 100%;
+      }
     }
 
     .toolbox {
       flex: 1 1 100%;
       min-width: 260px;
       gap: 1rem;
+      order: 3;
     }
 
     .transcript-container {
-      flex: 1 1 520px;
-      min-width: 380px;
+      flex: 2 1 auto;
+      min-width: 320px;
+      max-width: 65%;
       display: flex;
       gap: 0.5rem;
       max-height: 76vh;
+      order: 2;
+    }
+
+    @media (max-width: 960px) {
+      .transcript-container {
+        max-width: 100%;
+      }
     }
 
     .transcript-panel {
@@ -768,6 +789,59 @@
       color: var(--muted);
     }
 
+    .warning-overlay {
+      position: absolute;
+      inset: 1.5rem 1.5rem auto;
+      background: rgba(234, 88, 12, 0.15);
+      border: 1px solid rgba(234, 88, 12, 0.4);
+      border-radius: 12px;
+      padding: 0.9rem 1.1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+      z-index: 4;
+      backdrop-filter: blur(8px);
+    }
+
+    .warning-overlay.hidden {
+      display: none;
+    }
+
+    .warning-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .warning-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .warning-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .warning-text strong {
+      font-size: 0.9rem;
+      color: #fbbf24;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .warning-text p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #fcd34d;
+      line-height: 1.4;
+    }
+
     .media-meta {
       display: flex;
       justify-content: space-between;
@@ -949,7 +1023,8 @@
 
     .tool-list {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      flex-wrap: wrap;
       gap: 1rem;
     }
 
@@ -1202,7 +1277,8 @@
 
     .job-list {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      flex-wrap: wrap;
       gap: 0.6rem;
       max-height: 220px;
       overflow-y: auto;
@@ -1817,6 +1893,15 @@
         <div class="loader-bar"><div id="loader-progress" class="loader-bar__fill"></div></div>
         <p id="loader-text" class="loader-text">Starting job…</p>
       </div>
+      <div id="incomplete-transcript-warning" class="warning-overlay hidden">
+        <div class="warning-content">
+          <span class="warning-icon">⚠️</span>
+          <div class="warning-text">
+            <strong>Incomplete Transcript</strong>
+            <p id="warning-message">Transcript coverage is incomplete</p>
+          </div>
+        </div>
+      </div>
       <div class="speed-selector" id="speed-selector">
         <button type="button" data-speed="1" class="active">1×</button>
         <button type="button" data-speed="1.2">1.2×</button>
@@ -1848,6 +1933,7 @@
       <aside class="transcript-toolbox">
         <button type="button" id="save-edits-btn" class="toolbox-btn" title="Save edits">💾</button>
         <button type="button" id="export-video-btn" class="toolbox-btn" title="Render edited video">🎬</button>
+        <button type="button" id="preview-btn" class="toolbox-btn" title="Quick preview with proxy video">⚡</button>
         <button type="button" id="export-audio-btn" class="toolbox-btn" title="Render edited audio">🎙️</button>
       </aside>
     </div>
@@ -1995,6 +2081,8 @@
     const conversionLoader = document.getElementById('conversion-loader');
     const loaderFill = document.getElementById('loader-progress');
     const loaderText = document.getElementById('loader-text');
+    const incompleteTranscriptWarning = document.getElementById('incomplete-transcript-warning');
+    const warningMessage = document.getElementById('warning-message');
     const currentTimeEl = document.getElementById('current-time');
     const durationEl = document.getElementById('duration');
     const versionToggle = document.getElementById('version-toggle');
@@ -2032,6 +2120,7 @@
     const skipDeletedBtn = document.getElementById('skip-deleted-btn');
     const saveEditsBtn = document.getElementById('save-edits-btn');
     const exportVideoBtn = document.getElementById('export-video-btn');
+    const previewBtn = document.getElementById('preview-btn');
     const exportAudioBtn = document.getElementById('export-audio-btn');
     const wordStatsEl = document.getElementById('word-stats');
     const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
@@ -2079,8 +2168,12 @@
     let savedDeletedWords = new Set();
     let videoExportCompleted = false;
     let audioExportCompleted = false;
-    let playbackTrackingInterval = null;
     let isCurrentlySeeking = false;
+    let lastSeekTime = 0;
+    let isVideoBuffering = false;
+    let hasPerformedInitialSkip = false;
+    let lastSeekCompleteTime = 0;  // Track when any seek completes (user or automatic)
+    let isUserSeeking = false;  // Track when user is manually seeking
     let userIsScrolling = false;
     let scrollTimeout = null;
     let lastNotesContent = null;
@@ -3248,7 +3341,6 @@
       activeWordIndex = -1;
       selectedWords.clear();
       deletedWords.clear();
-      stopPlaybackTracking();
       userIsScrolling = false;
       if (scrollTimeout) {
         clearTimeout(scrollTimeout);
@@ -3704,35 +3796,49 @@
           throw new Error(data.error || 'Render failed');
         }
 
-        const card = addJobCard(data.job_id, `Render Video`);
-        const job = await waitForJob(data.job_id, (update) => {
-          card.status.textContent = `${update.status} — ${update.message || ''}`;
-          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
-          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
-
-          // Display percentage and estimated time
-          let progressText = `${Math.round(progress)}%`;
-          if (update.eta) {
-            progressText += ` • ETA: ${update.eta}`;
-          }
-          card.progressInfo.textContent = progressText;
-        });
-
-        if (job.status === 'completed') {
-          videoExportCompleted = true;
-          saveRenderState('video');
-          updateExportButtonStyles();
-          addLogMessage(`Video render completed! Output: ${data.output_file}`, 'success');
-        } else {
-          addLogMessage(`Video render failed: ${job.message || 'Unknown error'}`, 'error');
-        }
-
-        await loadWorkspace();
+        addJobCard(data.job_id, `Render Video`);
+        addLogMessage(`Video render started. Refresh the page to see the result.`, 'info');
       } catch (error) {
         console.error('Render error:', error);
         addLogMessage(`Render failed: ${error.message}`, 'error');
       } finally {
         exportVideoBtn.disabled = false;
+      }
+    }
+
+    async function exportPreviewVideo() {
+      if (!workspaceFiles.proxy) {
+        alert('No proxy video available. Please wait for proxy generation to complete.');
+        return;
+      }
+
+      const editedWords = getEditedWords();
+
+      try {
+        previewBtn.disabled = true;
+
+        const response = await fetch('/api/export-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoFile: workspaceFiles.proxy,
+            editedWords: editedWords,
+            useProxy: true
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Preview failed');
+        }
+
+        addJobCard(data.job_id, `Quick Preview`);
+        addLogMessage(`Preview started. Refresh the page to see the result.`, 'info');
+      } catch (error) {
+        console.error('Preview error:', error);
+        addLogMessage(`Preview failed: ${error.message}`, 'error');
+      } finally {
+        previewBtn.disabled = false;
       }
     }
 
@@ -3769,30 +3875,8 @@
           throw new Error(data.error || 'Render failed');
         }
 
-        const card = addJobCard(data.job_id, `Render Audio`);
-        const job = await waitForJob(data.job_id, (update) => {
-          card.status.textContent = `${update.status} — ${update.message || ''}`;
-          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
-          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
-
-          // Display percentage and estimated time
-          let progressText = `${Math.round(progress)}%`;
-          if (update.eta) {
-            progressText += ` • ETA: ${update.eta}`;
-          }
-          card.progressInfo.textContent = progressText;
-        });
-
-        if (job.status === 'completed') {
-          audioExportCompleted = true;
-          saveRenderState('audio');
-          updateExportButtonStyles();
-          addLogMessage(`Audio render completed! Output: ${data.output_file}`, 'success');
-        } else {
-          addLogMessage(`Audio render failed: ${job.message || 'Unknown error'}`, 'error');
-        }
-
-        await loadWorkspace();
+        addJobCard(data.job_id, `Render Audio`);
+        addLogMessage(`Audio render started. Refresh the page to see the result.`, 'info');
       } catch (error) {
         console.error('Render error:', error);
         addLogMessage(`Audio render failed: ${error.message}`, 'error');
@@ -3904,65 +3988,19 @@
       });
     }
 
-    // Real-time preview: skip deleted words during playback
-    function startPlaybackTracking() {
-      if (playbackTrackingInterval) return; // Already tracking
-
-      playbackTrackingInterval = setInterval(() => {
-        if (media.paused || isCurrentlySeeking) return;
-
-        const currentTime = media.currentTime;
-
-        // Find the current word (if any)
-        const currentWordIndex = wordSpans.findIndex(w =>
-          currentTime >= w.start && currentTime < w.end
-        );
-
-        // Check if we're on a deleted word
-        if (currentWordIndex >= 0 && deletedWords.has(currentWordIndex)) {
-          skipToNextNonDeleted();
-          return;
-        }
-
-        // Also check if we're approaching a deleted word
-        // Find the next upcoming word
-        const nextWordIndex = wordSpans.findIndex(w => w.start > currentTime);
-
-        // If the next word is deleted and very close (within 0.1s), skip to next non-deleted
-        if (nextWordIndex >= 0 && deletedWords.has(nextWordIndex)) {
-          const nextWord = wordSpans[nextWordIndex];
-          if ((nextWord.start - currentTime) < 0.1) {
-            skipToNextNonDeleted();
-            return;
-          }
-        }
-
-        // Check if we've passed all kept words
-        let lastKeptIndex = -1;
-        for (let i = wordSpans.length - 1; i >= 0; i--) {
-          if (!deletedWords.has(i)) {
-            lastKeptIndex = i;
-            break;
-          }
-        }
-
-        if (lastKeptIndex >= 0 && currentTime > wordSpans[lastKeptIndex].end) {
-          // We're past all kept content, pause the video
-          media.pause();
-        }
-      }, 50); // Check every 50ms
-    }
-
-    function stopPlaybackTracking() {
-      if (playbackTrackingInterval) {
-        clearInterval(playbackTrackingInterval);
-        playbackTrackingInterval = null;
-      }
-      isCurrentlySeeking = false; // Reset seeking flag when tracking stops
-    }
-
     function skipToNextNonDeleted() {
       const currentTime = media.currentTime;
+      const now = Date.now();
+
+      // Don't seek if video is currently buffering
+      if (isVideoBuffering) {
+        return;
+      }
+
+      // Prevent rapid consecutive seeks (debounce by 3000ms to ensure video stabilizes)
+      if (now - lastSeekTime < 3000) {
+        return;
+      }
 
       // Find the next non-deleted word
       const nextWordIndex = wordSpans.findIndex((w, idx) =>
@@ -3971,7 +4009,11 @@
 
       if (nextWordIndex >= 0) {
         isCurrentlySeeking = true;
+        lastSeekTime = now;
+        // Seek directly to the word start (NOT using SEEK_EPSILON to avoid seeking to time 0)
+        // SEEK_EPSILON is only for user-initiated seeks to start playback before the word
         media.currentTime = wordSpans[nextWordIndex].start;
+        console.log(`Skipping to next non-deleted word at ${wordSpans[nextWordIndex].start}s`);
       } else {
         // No more non-deleted words - pause at end of edited content
         media.pause();
@@ -4103,6 +4145,46 @@
       return entries;
     }
 
+    function checkTranscriptCompleteness(segments) {
+      // Hide warning by default
+      if (incompleteTranscriptWarning) {
+        incompleteTranscriptWarning.classList.add('hidden');
+      }
+
+      // Check if we have segments and video duration
+      if (!segments || segments.length === 0 || !media || !media.duration || media.duration === 0) {
+        return;
+      }
+
+      // Get the last segment's end time
+      const lastSegment = segments[segments.length - 1];
+      const lastTimestamp = lastSegment.endSeconds || lastSegment.seconds || 0;
+      const videoDuration = media.duration;
+
+      // Calculate coverage percentage
+      const coveragePercent = (lastTimestamp / videoDuration) * 100;
+
+      // Show warning if transcript covers less than 95% of video
+      if (coveragePercent < 95) {
+        const transcriptMinutes = Math.floor(lastTimestamp / 60);
+        const transcriptSeconds = Math.floor(lastTimestamp % 60);
+        const videoMinutes = Math.floor(videoDuration / 60);
+        const videoSeconds = Math.floor(videoDuration % 60);
+
+        const transcriptDuration = `${transcriptMinutes}:${transcriptSeconds.toString().padStart(2, '0')}`;
+        const videoDurationStr = `${videoMinutes}:${videoSeconds.toString().padStart(2, '0')}`;
+        const coverageRounded = Math.round(coveragePercent);
+
+        if (warningMessage) {
+          warningMessage.textContent = `Transcript only covers ${transcriptDuration} of ${videoDurationStr} video (${coverageRounded}%). Re-transcription may be needed.`;
+        }
+
+        if (incompleteTranscriptWarning) {
+          incompleteTranscriptWarning.classList.remove('hidden');
+        }
+      }
+    }
+
     async function loadTranscript() {
       if (!transcriptSource || !transcriptSource.url) {
         resetTranscript('No transcript file detected for this project.', 'Missing');
@@ -4119,6 +4201,7 @@
           const segments = parseTranscriptJSON(data);
           if (segments.length) {
             renderTranscript(segments);
+            checkTranscriptCompleteness(segments);
             updateActiveWord(media.currentTime || 0);
             // Load saved edits after transcript is rendered
             await loadSavedEdits();
@@ -4130,6 +4213,7 @@
           const text = await response.text();
           const segments = parseSRT(text);
           renderTranscript(segments);
+          checkTranscriptCompleteness(segments);
           updateActiveWord(media.currentTime || 0);
           // Load saved edits after transcript is rendered
           await loadSavedEdits();
@@ -4297,30 +4381,6 @@
       }
       updateActiveWord(media.currentTime || 0);
       updateEditedDuration();
-
-      // Auto-skip deleted words during playback
-      if (!media.paused && wordSpans.length > 0) {
-        const currentTime = media.currentTime;
-
-        // Find the current word index
-        const currentWordIndex = wordSpans.findIndex((w, idx) =>
-          currentTime >= w.start && currentTime < w.end
-        );
-
-        // If we're in a deleted word, skip to the next non-deleted word
-        if (currentWordIndex >= 0 && deletedWords.has(currentWordIndex)) {
-          const nextWordIndex = wordSpans.findIndex((w, idx) =>
-            idx > currentWordIndex && !deletedWords.has(idx)
-          );
-
-          if (nextWordIndex >= 0) {
-            media.currentTime = wordSpans[nextWordIndex].start;
-          } else {
-            // No more non-deleted words - pause at end
-            media.pause();
-          }
-        }
-      }
     }
 
     function updateEditedDuration() {
@@ -4493,16 +4553,8 @@
           await loadWorkspace({ refresh: true });
           return true;
         }
-        const job = await waitForJob(jobId, (update) => {
-          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
-          updateLoader(progress, `${update.message || 'encoding'} (${progress.toFixed(1)}%)`);
-        });
         hideLoader();
-        if (job.status === 'completed') {
-          await loadWorkspace({ refresh: true });
-          return true;
-        }
-        alert(`Proxy conversion failed: ${job.message || 'Unknown error'}`);
+        alert('Proxy conversion started. Please refresh the page to continue.');
         return false;
       } catch (error) {
         console.error(error);
@@ -4758,24 +4810,6 @@
       return { wrapper, status: statusOld, progressFill: progressFillOld, progressInfo };
     }
 
-    async function waitForJob(jobId, onUpdate) {
-      while (true) {
-        const response = await fetch(`/api/jobs/${jobId}`);
-        if (!response.ok) break;
-        const job = await response.json();
-
-        // Update log bar card
-        updateJobCard(jobId, job);
-
-        if (onUpdate) onUpdate(job);
-        if (job.status === 'completed' || job.status === 'failed') {
-          return job;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
-      return { status: 'failed', message: 'job not found' };
-    }
-
     function formatTimeRemaining(seconds) {
       if (seconds < 60) {
         return `${Math.round(seconds)}s`;
@@ -4888,50 +4922,9 @@
           // Update with current state
           updateJobCard(jobId, job);
 
-          // Start polling for running jobs
-          if (job.status === 'running' || job.status === 'pending') {
-            pollJob(jobId);
-          }
         }
       } catch (error) {
         console.error('Failed to load existing jobs:', error);
-      }
-    }
-
-    async function pollJob(jobId) {
-      // Poll until job is complete or failed
-      while (true) {
-        try {
-          const response = await fetch(`/api/jobs/${jobId}`);
-          if (!response.ok) break;
-          const job = await response.json();
-
-          updateJobCard(jobId, job);
-
-          if (job.status === 'completed' || job.status === 'failed') {
-            // Refresh workspace when important jobs complete
-            if (job.status === 'completed') {
-              const isTranscriptionJob = job.label && (
-                job.label.includes('transcribe') ||
-                job.label.includes('Transcribe') ||
-                job.type === 'script' && job.label.includes('Deepgram')
-              );
-              const isProxyJob = job.type === 'proxy';
-              const isAudioJob = job.label && job.label.includes('Extract');
-
-              if (isTranscriptionJob || isProxyJob || isAudioJob) {
-                // Refresh workspace to show new files/transcripts
-                await loadWorkspace({ refresh: true });
-              }
-            }
-            break;
-          }
-
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-          console.error(`Failed to poll job ${jobId}:`, error);
-          break;
-        }
       }
     }
 
@@ -5217,20 +5210,9 @@
         if (!response.ok) {
           throw new Error(data.error || response.statusText);
         }
-        const card = addJobCard(data.job_id, `Run ${scriptLabel}`);
-        const job = await waitForJob(data.job_id, (update) => {
-          card.status.textContent = `${update.status} — ${update.message || ''}`;
-          const progress = update.progress ?? (update.status === 'running' ? 50 : 0);
-          card.progressFill.style.width = `${Math.min(progress, 100)}%`;
-        });
-        if (job.status === 'completed') {
-          setScriptOutcome(scriptName, 'completed');
-          applyScriptVisualState(button, 'completed');
-        } else {
-          setScriptOutcome(scriptName, 'failed');
-          applyScriptVisualState(button, 'failed');
-        }
-        await loadWorkspace({ refresh: true });
+        addJobCard(data.job_id, `Run ${scriptLabel}`);
+        alert(`Script ${scriptLabel} started. Refresh the page to see the result.`);
+        if (statusSpan) statusSpan.textContent = 'Started';
         await loadScripts();
       } catch (error) {
         console.error(error);
@@ -5403,20 +5385,26 @@
     }
 
     media.addEventListener('timeupdate', updateCurrentTime);
+
+    // Handle user manual seeking (e.g., clicking timeline)
+    media.addEventListener('seeking', () => {
+      console.log('User seeking detected');
+      isUserSeeking = true;
+      isCurrentlySeeking = true;  // Also set this to be safe
+    });
+
     media.addEventListener('seeked', () => {
       updateCurrentTime();
-      isCurrentlySeeking = false; // Clear seeking flag when seek completes
+      // Record when this seek completed (user or automatic)
+      lastSeekCompleteTime = Date.now();
+      console.log('Seek completed at ' + media.currentTime + 's, tracking paused for 3 seconds');
+      // Delay clearing seeking flags to give video time to stabilize
+      setTimeout(() => {
+        isCurrentlySeeking = false;
+        isUserSeeking = false;
+      }, 1000); // Wait 1 second after seek completes before allowing tracking to resume
     });
     media.addEventListener('loadeddata', updateCurrentTime);
-
-    // Start/stop playback tracking for skipping deleted words
-    media.addEventListener('play', () => {
-      startPlaybackTracking();
-    });
-
-    media.addEventListener('pause', () => {
-      stopPlaybackTracking();
-    });
 
     // Video error handling
     media.addEventListener('error', (e) => {
@@ -5431,10 +5419,12 @@
     // Video loading feedback
     media.addEventListener('waiting', () => {
       console.log('Video buffering...');
+      isVideoBuffering = true;
     });
 
     media.addEventListener('canplay', () => {
       console.log('Video ready to play');
+      isVideoBuffering = false;
     });
 
     media.addEventListener('loadstart', () => {
@@ -5443,6 +5433,18 @@
 
     media.addEventListener('loadeddata', () => {
       console.log('Video data loaded');
+
+      // If there are deleted words at the beginning, seek to first non-deleted word (only once)
+      if (!hasPerformedInitialSkip && wordSpans.length > 0 && deletedWords.size > 0) {
+        const firstNonDeletedIndex = wordSpans.findIndex((w, idx) => !deletedWords.has(idx));
+        if (firstNonDeletedIndex > 0) {
+          // There are deleted words at the start - seek directly to the first non-deleted word
+          // Don't use SEEK_EPSILON here to avoid seeking back into the deleted region
+          hasPerformedInitialSkip = true;
+          media.currentTime = wordSpans[firstNonDeletedIndex].start;
+          console.log(`Skipped ${firstNonDeletedIndex} deleted words at start, jumping to ${media.currentTime}s`);
+        }
+      }
     });
 
     // Speed selector
@@ -5572,6 +5574,10 @@
       exportVideoBtn.addEventListener('click', exportEditedVideo);
     }
 
+    if (previewBtn) {
+      previewBtn.addEventListener('click', exportPreviewVideo);
+    }
+
     if (exportAudioBtn) {
       exportAudioBtn.addEventListener('click', exportEditedAudio);
     }
@@ -5642,8 +5648,7 @@
       await loadScripts();
       await loadExistingJobs();
 
-      // Poll for new jobs every 3 seconds to catch jobs created after upload
-      setInterval(() => loadExistingJobs(), 3000);
+      // Polling removed - user must manually refresh to see new jobs
     })();
 
     // Warn user about unsaved changes before leaving the page

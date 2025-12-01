@@ -784,9 +784,13 @@ def run_script_job(job_id: str, script: Path, workspace: Path) -> None:
         job_manager.update_job(job_id, status=JobStatus.FAILED, message=f"Script not found: {script}")
         return
 
+    # Use venv Python if available, otherwise fall back to system python3
+    venv_python = ROOT_DIR / ".venv" / "bin" / "python3"
+    python_executable = str(venv_python) if venv_python.exists() else "python3"
+
     try:
         process = subprocess.Popen(
-            ["python3", str(script)],
+            [python_executable, str(script)],
             cwd=str(workspace),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -811,6 +815,67 @@ def run_script_job(job_id: str, script: Path, workspace: Path) -> None:
             job_manager.update_job(job_id, status=JobStatus.FAILED, message=f"exit code {retcode}")
             logger.error("[job %s] script failed with exit code %s", job_id[:8], retcode)
         refresh_workspace_cache()
+
+
+def auto_transcribe_after_audio_extraction(audio_job_id: str, project_dir: Path) -> None:
+    """
+    Monitor audio extraction job and automatically start transcription when complete.
+
+    This function polls the audio extraction job status every second and starts
+    transcription only when the MP3 file is fully written (job status = COMPLETED).
+    This prevents the previous issue where transcription started with incomplete MP3 files.
+    """
+    logger.info("Starting audio extraction monitor for job %s", audio_job_id[:8])
+
+    # Poll job status until complete or failed
+    max_wait_seconds = 1800  # 30 minutes max wait
+    elapsed = 0
+
+    while elapsed < max_wait_seconds:
+        job = job_manager.get_job(audio_job_id)
+
+        if not job:
+            logger.error("Audio extraction job %s not found, cannot start transcription", audio_job_id[:8])
+            return
+
+        status = job.get('status')
+
+        if status == JobStatus.COMPLETED:
+            logger.info("Audio extraction completed successfully, starting transcription")
+            break
+        elif status == JobStatus.FAILED:
+            logger.error("Audio extraction failed, skipping transcription")
+            return
+
+        # Job still running, wait before checking again
+        time.sleep(1)
+        elapsed += 1
+
+    if elapsed >= max_wait_seconds:
+        logger.error("Audio extraction timeout after %d seconds, skipping transcription", max_wait_seconds)
+        return
+
+    # Audio extraction is now GUARANTEED to be complete
+    # Double-check file exists and transcript doesn't exist yet
+    summary = summarize_directory(project_dir)
+
+    if not summary['files'].get('audio'):
+        logger.error("Audio extraction completed but file not found, cannot transcribe")
+        return
+
+    if summary['files'].get('transcript_json'):
+        logger.info("Transcript already exists, skipping auto-transcription")
+        return
+
+    # Start transcription with the complete MP3 file
+    script_path = SCRIPTS_DIR / "ai-tools" / "deepgram_transcribe_debates.py"
+    if not script_path.is_file():
+        logger.warning("Transcription script not found: %s", script_path)
+        return
+
+    logger.info("Starting auto-transcription for project %s", project_dir.name)
+    transcribe_job_id = job_manager.create_job("script", "Auto-transcribe with Deepgram")
+    run_script_job(transcribe_job_id, script_path, project_dir)
 
 
 def auto_process_video(project_dir: Path, video_filename: str) -> None:
@@ -846,14 +911,15 @@ def auto_process_video(project_dir: Path, video_filename: str) -> None:
         logger.info("Proxy video already exists, skipping")
 
     # 2. Extract mp3 if it doesn't exist
+    audio_job_id = None
     if not summary['files'].get('audio'):
         logger.info("Extracting audio from %s", video_filename)
         script_path = SCRIPTS_DIR / "editing" / "extract_audio_from_video.py"
         if script_path.is_file():
-            job_id = job_manager.create_job("script", "Auto-extract audio")
+            audio_job_id = job_manager.create_job("script", "Auto-extract audio")
             thread = threading.Thread(
                 target=run_script_job,
-                args=(job_id, script_path, project_dir),
+                args=(audio_job_id, script_path, project_dir),
                 daemon=True,
             )
             thread.start()
@@ -862,29 +928,36 @@ def auto_process_video(project_dir: Path, video_filename: str) -> None:
     else:
         logger.info("Audio file already exists, skipping extraction")
 
-    # 3. Run transcription if JSON doesn't exist
+    # 3. Auto-transcription with job monitoring (re-enabled with reliability fix)
+    # Only start transcription if:
+    # - Transcript doesn't already exist
+    # - Audio extraction was started (or audio already exists)
     if not summary['files'].get('transcript_json'):
-        logger.info("Scheduling transcription for %s", video_filename)
-        script_path = SCRIPTS_DIR / "ai-tools" / "deepgram_transcribe_debates.py"
-        if script_path.is_file():
-            # Wait a bit for audio extraction to complete before transcription
-            # We'll create a delayed job
-            def delayed_transcription():
-                time.sleep(10)  # Wait 10 seconds for audio extraction
-                # Re-check if audio now exists
-                updated_summary = summarize_directory(project_dir)
-                if updated_summary['files'].get('audio'):
-                    job_id = job_manager.create_job("script", "Auto-transcribe with Deepgram")
-                    run_script_job(job_id, script_path, project_dir)
-                else:
-                    logger.warning("Audio file still not available, skipping transcription")
-
-            thread = threading.Thread(target=delayed_transcription, daemon=True)
+        if audio_job_id:
+            # Audio extraction just started - monitor it and transcribe when complete
+            logger.info("Scheduling auto-transcription after audio extraction completes")
+            thread = threading.Thread(
+                target=auto_transcribe_after_audio_extraction,
+                args=(audio_job_id, project_dir),
+                daemon=True,
+            )
             thread.start()
-        else:
-            logger.warning("Transcription script not found: %s", script_path)
+        elif summary['files'].get('audio'):
+            # Audio already exists - transcribe immediately
+            logger.info("Audio already exists, starting immediate auto-transcription")
+            script_path = SCRIPTS_DIR / "ai-tools" / "deepgram_transcribe_debates.py"
+            if script_path.is_file():
+                transcribe_job_id = job_manager.create_job("script", "Auto-transcribe with Deepgram")
+                thread = threading.Thread(
+                    target=run_script_job,
+                    args=(transcribe_job_id, script_path, project_dir),
+                    daemon=True,
+                )
+                thread.start()
+            else:
+                logger.warning("Transcription script not found: %s", script_path)
     else:
-        logger.info("Transcription already exists, skipping")
+        logger.info("Transcript already exists, skipping auto-transcription")
 
 
 def build_segments(edited_words: list[Dict[str, Any]]) -> list[Dict[str, float]]:
@@ -1293,6 +1366,76 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             return {}
 
     # ------------------------------------------------------------------
+    # Range request support for video seeking
+    # ------------------------------------------------------------------
+
+    def send_range_response(self, file_path: Path) -> None:
+        """Send HTTP 206 Partial Content response for video/audio seeking."""
+        try:
+            file_size = file_path.stat().st_size
+            range_header = self.headers.get('Range', '')
+
+            # Parse range header (format: "bytes=start-end" or "bytes=start-")
+            if not range_header.startswith('bytes='):
+                self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                return
+
+            range_spec = range_header[6:]  # Remove "bytes="
+
+            # Handle range format
+            if '-' not in range_spec:
+                self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                return
+
+            start_str, end_str = range_spec.split('-', 1)
+
+            # Parse start byte
+            start = int(start_str) if start_str else 0
+
+            # Parse end byte (if not specified, read to end of file)
+            if end_str:
+                end = int(end_str)
+            else:
+                end = file_size - 1
+
+            # Validate range
+            if start < 0 or start >= file_size or end >= file_size or start > end:
+                self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                return
+
+            content_length = end - start + 1
+
+            # Send response headers
+            self.send_response(HTTPStatus.PARTIAL_CONTENT)
+            self.send_header('Content-Type', self.guess_type(str(file_path)))
+            self.send_header('Content-Range', f'bytes {start}-{end}/{file_size}')
+            self.send_header('Content-Length', str(content_length))
+            self.send_header('Accept-Ranges', 'bytes')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+
+            # Send file content
+            with file_path.open('rb') as f:
+                f.seek(start)
+                remaining = content_length
+                chunk_size = 64 * 1024  # 64KB chunks
+
+                while remaining > 0:
+                    chunk = f.read(min(chunk_size, remaining))
+                    if not chunk:
+                        break
+                    try:
+                        self.wfile.write(chunk)
+                    except (ConnectionResetError, BrokenPipeError):
+                        # Client disconnected during transfer (normal for seeking)
+                        break
+                    remaining -= len(chunk)
+
+        except (OSError, ValueError) as e:
+            logger.error("Error handling range request for %s: %s", file_path, e)
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    # ------------------------------------------------------------------
     # API endpoints
     # ------------------------------------------------------------------
 
@@ -1480,6 +1623,20 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 logger.error("Failed to load transcript edits: %s", e)
                 self._send_json({"deletedIndices": []})
             return
+
+        # Handle Range requests for video/audio seeking
+        if 'Range' in self.headers:
+            # Get the actual file path using translate_path
+            file_path_str = self.translate_path(self.path)
+            file_path = Path(file_path_str)
+
+            # Check if file exists and is a media file
+            if file_path.is_file():
+                # List of media file extensions that benefit from range requests
+                media_extensions = {'.mp4', '.webm', '.ogg', '.mp3', '.wav', '.m4a', '.aac', '.flac', '.mkv', '.avi', '.mov'}
+                if file_path.suffix.lower() in media_extensions:
+                    self.send_range_response(file_path)
+                    return
 
         return super().do_GET()
 
@@ -2080,6 +2237,7 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
             data = self._read_json_body()
             video_file = data.get("videoFile")
             edited_words = data.get("editedWords", [])
+            use_proxy = data.get("useProxy", False)
 
             if not video_file:
                 self._send_json({"error": "videoFile required"}, status=HTTPStatus.BAD_REQUEST)
@@ -2100,7 +2258,8 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "Video file not found"}, status=HTTPStatus.NOT_FOUND)
                 return
 
-            logger.info("Starting video export of %s with %d words", video_file, len(edited_words))
+            logger.info("Starting video %s of %s with %d words",
+                       "preview" if use_proxy else "export", video_file, len(edited_words))
 
             # Build segments to keep (non-deleted words)
             segments = build_segments(edited_words)
@@ -2109,9 +2268,14 @@ class PodfreeRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "No segments to export - all words deleted?"}, status=HTTPStatus.BAD_REQUEST)
                 return
 
-            # Generate output filename
+            # Generate output filename based on mode
             stem = video_path.stem
-            output_filename = f"{stem}_edited.mp4"
+            # Remove _proxy suffix if it exists for cleaner output names
+            if stem.endswith('_proxy'):
+                stem = stem[:-6]
+
+            suffix = "_preview" if use_proxy else "_edited"
+            output_filename = f"{stem}{suffix}.mp4"
             output_path = WORKSPACE_DIR / output_filename
 
             # Create job and run export in background thread
