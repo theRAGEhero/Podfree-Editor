@@ -12,15 +12,23 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+# Add scripts directory to path for utils imports
+SCRIPTS_DIR = Path(__file__).parent.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
 from typing import Any, Dict, List, Optional
 
 import requests
 
 from utils.llm_client import (
+    OPENROUTER_BASE_URL,
     call_openrouter,
     estimate_call_cost,
     estimate_hourly_cost,
@@ -29,7 +37,7 @@ from utils.llm_client import (
 )
 
 
-DEFAULT_MODEL = "anthropic/claude-3.7-sonnet"
+DEFAULT_MODEL = os.getenv("PODFREE_LLM_MODEL", "anthropic/claude-3.7-sonnet")
 DEFAULT_MAX_CHAPTERS = 12
 TOKEN_PER_WORD_APPROX = 1.3  # rough heuristic for GPT-style BPE tokenization
 
@@ -248,10 +256,20 @@ def call_openrouter(
 
 
 def parse_chapter_payload(content: str) -> List[Chapter]:
+    # Strip markdown code fences if present
+    stripped = content.strip()
+    if stripped.startswith("```json"):
+        stripped = stripped[7:]  # Remove ```json
+    elif stripped.startswith("```"):
+        stripped = stripped[3:]   # Remove ```
+    if stripped.endswith("```"):
+        stripped = stripped[:-3]  # Remove closing ```
+    stripped = stripped.strip()
+
     try:
-        payload = json.loads(content)
+        payload = json.loads(stripped)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"Model response was not valid JSON: {content}") from exc
+        raise ValueError(f"Model response was not valid JSON: {stripped}") from exc
 
     chapters_raw = payload.get("chapters")
     if not isinstance(chapters_raw, list):
